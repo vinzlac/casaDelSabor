@@ -203,11 +203,25 @@ npx expo logout
 
 #### Lancement de l'application
 
+**Mode développement (recommandé)** - Détecte automatiquement l'IP locale :
 ```bash
 cd mobile
 npm install
-npx expo start
+npm run dev
 ```
+
+**Mode production** - Utilise l'URL de production configurée :
+```bash
+cd mobile
+npm install
+export EXPO_PUBLIC_PROD_API_URL=https://votre-api.up.railway.app
+npm run prod
+```
+
+**Commandes alternatives** :
+- `npm run android` - Lance sur Android avec détection automatique
+- `npm run ios` - Lance sur iOS avec détection automatique
+- `npm start` - Lance Expo sans configuration automatique (ancienne méthode)
 
 Après avoir lancé `expo start`, vous verrez un QR code dans votre terminal. 
 
@@ -266,27 +280,33 @@ Le menu de développement Expo offre plusieurs fonctionnalités utiles :
 
 **Configuration de l'API** :
 
-L'URL de l'API backend est configurée dans `mobile/src/config/api.ts`. 
+L'URL de l'API backend est maintenant détectée **automatiquement** ! Plus besoin de configuration manuelle.
 
-En développement, vous devrez peut-être modifier l'URL pour qu'elle corresponde à l'adresse IP de votre ordinateur :
+**En développement** :
+- Utilisez simplement `npm run dev` - l'IP locale est détectée automatiquement
+- Le script configure automatiquement `EXPO_PUBLIC_API_URL` avec votre IP locale
 
-1. Trouver votre adresse IP locale :
-   ```bash
-   # Sur macOS/Linux
-   hostname -I
-   # ou
-   ipconfig getifaddr en0
-   
-   # Sur Windows
-   ipconfig
-   ```
+**En production** :
+- Utilisez `npm run prod` avec l'URL de production :
+  ```bash
+  export EXPO_PUBLIC_PROD_API_URL=https://votre-api.up.railway.app
+  npm run prod
+  ```
 
-2. Modifier `mobile/src/config/api.ts` :
-   ```typescript
-   const DEV_API_URL = 'http://VOTRE_IP_LOCALE:8000';
-   ```
+**Configuration manuelle (optionnel)** :
 
-3. Redémarrer l'application Expo après modification
+Si vous devez forcer une URL spécifique, la configuration suit cette priorité :
+
+1. **Variable d'environnement `EXPO_PUBLIC_API_URL`** (priorité la plus haute)
+2. **Variable dans `app.json` (extra.apiUrl)**
+3. **Détection automatique du nom d'hôte** (macOS) - utilisée par `npm run dev`
+4. **Fallback localhost**
+
+**Vérifier votre IP locale** :
+```bash
+cd mobile
+npm run get-ip
+```
 
 ## Configuration
 

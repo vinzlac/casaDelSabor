@@ -4,13 +4,17 @@
   "main": "index.ts",
   "scripts": {
     "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web"
+    "dev": "node scripts/start-dev.js",
+    "prod": "node scripts/start-prod.js",
+    "android": "node scripts/start-dev.js --android",
+    "ios": "node scripts/start-dev.js --ios",
+    "web": "expo start --web",
+    "get-ip": "node scripts/get-local-ip.js"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
     "expo": "~54.0.30",
+    "expo-constants": "~18.0.0",
     "expo-status-bar": "~3.0.9",
     "react": "19.1.0",
     "react-native": "0.81.5",
