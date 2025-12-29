@@ -24,9 +24,9 @@ install-dev:
 # 🎯 Développement
 # ============================================
 
-# Lance le serveur en mode développement
+# Lance le serveur en mode développement (accessible sur le réseau local)
 dev port=default_port:
-    uv run uvicorn main:app --reload --port {{port}}
+    uv run uvicorn main:app --reload --host 0.0.0.0 --port {{port}}
 
 # Lance le serveur en mode production
 run port=default_port:
