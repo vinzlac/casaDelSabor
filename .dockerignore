@@ -1,7 +1,7 @@
 node_modules
 .git
 .gitignore
-*.md
+README.md
 web/
 mobile/
 __pycache__
@@ -18,4 +18,5 @@ venv/
 .DS_Store
 railway.json
 nixpacks.toml
+# Garder les documents markdown dans agent/documents/ car ils sont nécessaires
 

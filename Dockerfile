@@ -7,13 +7,21 @@ RUN apt-get update && apt-get install -y \
 
 # Installer uv
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-ENV PATH="/root/.cargo/bin:$PATH"
+
+# Ajouter uv au PATH de manière permanente (uv s'installe dans /root/.local/bin)
+ENV PATH="/root/.local/bin:/root/.cargo/bin:$PATH"
+
+# Vérifier que uv est accessible
+RUN uv --version
 
 # Définir le répertoire de travail
 WORKDIR /app
 
-# Copier uniquement le dossier agent
+# Copier uniquement le dossier agent (incluant les documents .md)
 COPY agent/ /app/
+
+# Vérifier que uv.lock existe avant d'installer
+RUN test -f uv.lock || (echo "ERROR: uv.lock not found!" && exit 1)
 
 # Installer les dépendances Python avec uv
 RUN uv sync --frozen
