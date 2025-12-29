@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Configuration n8n - À configurer via variables d'environnement
-const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL || '';
-const N8N_WORKFLOW_ID = process.env.N8N_WORKFLOW_ID || '';
+// URL de l'agent RAG Python - À configurer via variables d'environnement
+const AGENT_URL = process.env.AGENT_URL || 'http://localhost:8000';
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,54 +14,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Si l'URL du webhook n8n est configurée, on l'utilise
-    if (N8N_WEBHOOK_URL) {
-      const response = await fetch(N8N_WEBHOOK_URL, {
+    // Appel à l'agent RAG Python
+    try {
+      const response = await fetch(`${AGENT_URL}/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          chatInput: message,
-          type: 'chat',
-        }),
+        body: JSON.stringify({ message }),
       });
 
       if (!response.ok) {
-        throw new Error(`n8n webhook error: ${response.status}`);
+        throw new Error(`Agent error: ${response.status}`);
       }
 
       const data = await response.json();
       
-      // Adapter selon la structure de réponse de votre workflow n8n
       return NextResponse.json({
-        response: data.output || data.response || data.text || data.message || JSON.stringify(data),
+        response: data.response,
+        sources: data.sources || [],
       });
+    } catch (agentError) {
+      console.warn('Agent RAG non disponible, utilisation du mode démo:', agentError);
+      
+      // Fallback: Mode démo si l'agent n'est pas disponible
+      return handleDemoMode(message);
     }
-
-    // Mode démo - Réponses simulées pour tester l'interface
-    const demoResponses: Record<string, string> = {
-      'bonjour': '¡Hola! 👋 Bienvenue chez Casa del Sabor ! Je suis ravi de vous accueillir. Que puis-je faire pour vous aujourd\'hui ?',
-      'menu': '🌮 Voici nos spécialités :\n\n• Tacos al Pastor - 12€\n• Burrito Supremo - 14€\n• Enchiladas Verdes - 15€\n• Quesadillas de Pollo - 11€\n• Guacamole Fresco - 8€\n\n¿Qué le gustaría ordenar?',
-      'réservation': '📅 Pour une réservation, j\'ai besoin de quelques informations :\n\n• Date souhaitée\n• Nombre de personnes\n• Heure préférée\n\nNos horaires : Mar-Dim, 12h-14h30 et 19h-22h30',
-      'horaires': '🕐 Nos horaires d\'ouverture :\n\n• Mardi - Samedi : 12h-14h30 / 19h-22h30\n• Dimanche : 12h-15h (Brunch mexicain !)\n• Lundi : Fermé\n\n¡Los esperamos!',
-      'adresse': '📍 Vous nous trouvez au :\n\n**Casa del Sabor**\n42 Rue des Épices\n75011 Paris\n\n🚇 Métro : Bastille (lignes 1, 5, 8)\n\n¡Hasta pronto!',
-    };
-
-    const lowerMessage = message.toLowerCase();
-    let response = '🤔 Je ne suis pas sûr de comprendre. Puis-je vous aider avec :\n\n• Notre **menu**\n• Une **réservation**\n• Nos **horaires**\n• Notre **adresse**\n\nTapez l\'un de ces mots pour plus d\'infos !';
-
-    for (const [key, value] of Object.entries(demoResponses)) {
-      if (lowerMessage.includes(key)) {
-        response = value;
-        break;
-      }
-    }
-
-    // Simuler un délai de réponse
-    await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 700));
-
-    return NextResponse.json({ response });
 
   } catch (error) {
     console.error('Erreur API chat:', error);
@@ -73,3 +50,27 @@ export async function POST(request: NextRequest) {
   }
 }
 
+/**
+ * Mode démo - Réponses simulées quand l'agent RAG n'est pas disponible
+ */
+function handleDemoMode(message: string): NextResponse {
+  const demoResponses: Record<string, string> = {
+    'bonjour': '¡Hola! 👋 Bienvenue chez Casa del Sabor ! Je suis ravi de vous accueillir. Que puis-je faire pour vous aujourd\'hui ?\n\n⚠️ *Mode démo - Agent RAG non connecté*',
+    'menu': '🌮 Voici nos spécialités :\n\n• Tacos al Pastor - 12€\n• Burrito Supremo - 14€\n• Enchiladas Verdes - 15€\n• Quesadillas de Pollo - 11€\n• Guacamole Fresco - 8€\n\n¿Qué le gustaría ordenar?\n\n⚠️ *Mode démo - Agent RAG non connecté*',
+    'réservation': '📅 Pour une réservation, j\'ai besoin de quelques informations :\n\n• Date souhaitée\n• Nombre de personnes\n• Heure préférée\n\nNos horaires : Mar-Dim, 12h-14h30 et 19h-22h30\n\n⚠️ *Mode démo - Agent RAG non connecté*',
+    'horaires': '🕐 Nos horaires d\'ouverture :\n\n• Mardi - Samedi : 12h-14h30 / 19h-22h30\n• Dimanche : 12h-15h (Brunch mexicain !)\n• Lundi : Fermé\n\n¡Los esperamos!\n\n⚠️ *Mode démo - Agent RAG non connecté*',
+    'adresse': '📍 Vous nous trouvez au :\n\n**Casa del Sabor**\n42 Rue des Épices\n75011 Paris\n\n🚇 Métro : Bastille (lignes 1, 5, 8)\n\n¡Hasta pronto!\n\n⚠️ *Mode démo - Agent RAG non connecté*',
+  };
+
+  const lowerMessage = message.toLowerCase();
+  let response = '🤔 Je ne suis pas sûr de comprendre. Puis-je vous aider avec :\n\n• Notre **menu**\n• Une **réservation**\n• Nos **horaires**\n• Notre **adresse**\n\nTapez l\'un de ces mots pour plus d\'infos !\n\n⚠️ *Mode démo - Agent RAG non connecté*';
+
+  for (const [key, value] of Object.entries(demoResponses)) {
+    if (lowerMessage.includes(key)) {
+      response = value;
+      break;
+    }
+  }
+
+  return NextResponse.json({ response, sources: [], demo: true });
+}

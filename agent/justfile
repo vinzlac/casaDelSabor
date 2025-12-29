@@ -1,0 +1,114 @@
+# Justfile pour l'agent RAG Casa del Sabor
+
+# Variables
+default_port := "8000"
+python := "uv run python"
+
+# Affiche l'aide
+default:
+    @just --list
+
+# ============================================
+# 🚀 Installation
+# ============================================
+
+# Installe les dépendances
+install:
+    uv sync
+
+# Installe les dépendances de dev
+install-dev:
+    uv sync --dev
+
+# ============================================
+# 🎯 Développement
+# ============================================
+
+# Lance le serveur en mode développement
+dev port=default_port:
+    uv run uvicorn main:app --reload --port {{port}}
+
+# Lance le serveur en mode production
+run port=default_port:
+    uv run uvicorn main:app --host 0.0.0.0 --port {{port}}
+
+# Lance le serveur avec python
+start:
+    uv run python main.py
+
+# ============================================
+# 📚 RAG / Documents
+# ============================================
+
+# Indexe les documents dans Qdrant
+ingest:
+    curl -s -X POST http://localhost:{{default_port}}/ingest | {{python}} -m json.tool --no-ensure-ascii
+
+# Force la réindexation des documents
+reindex:
+    curl -s -X POST http://localhost:{{default_port}}/ingest \
+        -H "Content-Type: application/json" \
+        -d '{"force_reindex": true}' | {{python}} -m json.tool --no-ensure-ascii
+
+# Vérifie le statut de l'agent
+status:
+    curl -s http://localhost:{{default_port}}/status | {{python}} -m json.tool --no-ensure-ascii
+
+# Health check
+health:
+    curl -s http://localhost:{{default_port}}/health | {{python}} -m json.tool --no-ensure-ascii
+
+# Test une question au chatbot (sans mémoire)
+chat message:
+    curl -s -X POST http://localhost:{{default_port}}/chat \
+        -H "Content-Type: application/json" \
+        -d '{"message": "{{message}}"}' | {{python}} -m json.tool --no-ensure-ascii
+
+# Conversation interactive avec mémoire
+conversation:
+    {{python}} scripts/conversation.py
+
+# ============================================
+# 🧪 Tests
+# ============================================
+
+# Lance les tests
+test:
+    uv run pytest
+
+# Lance les tests avec couverture
+test-cov:
+    uv run pytest --cov=. --cov-report=html
+
+# ============================================
+# 🔧 Utilitaires
+# ============================================
+
+# Formate le code
+fmt:
+    uv run ruff format .
+
+# Vérifie le linting
+lint:
+    uv run ruff check .
+
+# Corrige les erreurs de linting
+lint-fix:
+    uv run ruff check . --fix
+
+# Nettoie les fichiers cache
+clean:
+    rm -rf __pycache__ .pytest_cache .ruff_cache .coverage htmlcov
+    find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+
+# ============================================
+# 🐳 Docker (optionnel)
+# ============================================
+
+# Build l'image Docker
+docker-build:
+    docker build -t casa-del-sabor-agent .
+
+# Lance le container Docker
+docker-run:
+    docker run -p 8000:8000 --env-file .env casa-del-sabor-agent
