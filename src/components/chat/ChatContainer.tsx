@@ -17,6 +17,7 @@ const INITIAL_MESSAGE: Message = {
 export default function ChatContainer() {
   const [messages, setMessages] = useState<Message[]>([INITIAL_MESSAGE]);
   const [isLoading, setIsLoading] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
@@ -41,16 +42,24 @@ export default function ChatContainer() {
     setIsLoading(true);
 
     try {
-      // Appel à l'API route qui communique avec n8n
+      // Appel à l'API route qui communique avec l'agent RAG
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ message: content }),
+        body: JSON.stringify({ 
+          message: content,
+          sessionId: sessionId,
+        }),
       });
 
       const data = await response.json();
+
+      // Sauvegarder le session_id pour maintenir la conversation
+      if (data.sessionId) {
+        setSessionId(data.sessionId);
+      }
 
       // Ajouter la réponse du bot
       const botMessage: Message = {
@@ -78,9 +87,15 @@ export default function ChatContainer() {
     }
   };
 
+  // Fonction pour réinitialiser la conversation
+  const resetConversation = () => {
+    setMessages([INITIAL_MESSAGE]);
+    setSessionId(null);
+  };
+
   return (
     <div className="chat-container">
-      <ChatHeader />
+      <ChatHeader onReset={resetConversation} />
       
       {/* Zone des messages */}
       <div 
@@ -106,4 +121,3 @@ export default function ChatContainer() {
     </div>
   );
 }
-

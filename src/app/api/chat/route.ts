@@ -5,7 +5,7 @@ const AGENT_URL = process.env.AGENT_URL || 'http://localhost:8000';
 
 export async function POST(request: NextRequest) {
   try {
-    const { message } = await request.json();
+    const { message, sessionId } = await request.json();
 
     if (!message) {
       return NextResponse.json(
@@ -21,7 +21,10 @@ export async function POST(request: NextRequest) {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({ 
+          message,
+          session_id: sessionId || null,
+        }),
       });
 
       if (!response.ok) {
@@ -33,6 +36,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         response: data.response,
         sources: data.sources || [],
+        sessionId: data.session_id,
       });
     } catch (agentError) {
       console.warn('Agent RAG non disponible, utilisation du mode démo:', agentError);
@@ -72,5 +76,5 @@ function handleDemoMode(message: string): NextResponse {
     }
   }
 
-  return NextResponse.json({ response, sources: [], demo: true });
+  return NextResponse.json({ response, sources: [], sessionId: null, demo: true });
 }
