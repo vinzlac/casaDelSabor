@@ -176,7 +176,7 @@ Railway détectera automatiquement Python via `pyproject.toml` et installera les
 
 #### Méthode 2 : Configuration via fichiers (déjà configuré)
 
-Un fichier `railway.json` a été créé à la racine du projet et un `railway.toml` dans le dossier `agent/` pour automatiser la configuration.
+Un fichier `railway.json` et un `Dockerfile` ont été créés à la racine du projet pour automatiser la configuration.
 
 **Étapes de déploiement via GitHub :**
 
@@ -198,10 +198,12 @@ Un fichier `railway.json` a été créé à la racine du projet et un `railway.t
    - Railway détectera automatiquement le fichier `railway.json` à la racine
 
 4. **Configuration automatique** :
-   - Railway lira `railway.json` et configurera :
-     - Le build : `cd agent && uv sync --frozen`
-     - La commande de démarrage : `cd agent && uv run uvicorn main:app --host 0.0.0.0 --port $PORT`
-   - Le **Root Directory** sera automatiquement configuré via le fichier
+   - Railway lira `railway.json` qui utilise le `Dockerfile` personnalisé
+   - Le Dockerfile :
+     - Installe `uv` automatiquement
+     - Copie le dossier `agent/` dans le conteneur
+     - Installe les dépendances avec `uv sync --frozen`
+     - Configure la commande de démarrage avec `uv run uvicorn`
 
 5. **Ajouter les variables d'environnement** :
    Dans l'onglet **Variables** du service Railway, ajouter :
@@ -224,6 +226,7 @@ curl -X POST https://votre-app.up.railway.app/ingest
 **Avantages de cette méthode** :
 - ✅ Configuration versionnée dans le repo
 - ✅ Déploiement automatique à chaque push
+- ✅ Installation automatique de `uv` dans le Dockerfile
 - ✅ Pas besoin de configurer manuellement le Root Directory
 - ✅ Facile à reproduire sur d'autres environnements
 
