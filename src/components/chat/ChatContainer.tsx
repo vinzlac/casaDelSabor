@@ -7,15 +7,24 @@ import ChatInput from './ChatInput';
 import TypingIndicator from './TypingIndicator';
 import { Message } from '@/types/chat';
 
-const INITIAL_MESSAGE: Message = {
+const createInitialMessage = (): Message => ({
   id: 'welcome',
   content: '¡Hola! 👋 Bienvenue chez Casa del Sabor ! Je suis votre assistant virtuel. Comment puis-je vous aider aujourd\'hui ?',
   sender: 'bot',
   timestamp: new Date(),
-};
+});
 
 export default function ChatContainer() {
-  const [messages, setMessages] = useState<Message[]>([INITIAL_MESSAGE]);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  // Initialiser le message de bienvenue côté client uniquement
+  useEffect(() => {
+    if (!isInitialized) {
+      setMessages([createInitialMessage()]);
+      setIsInitialized(true);
+    }
+  }, [isInitialized]);
   const [isLoading, setIsLoading] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -89,7 +98,7 @@ export default function ChatContainer() {
 
   // Fonction pour réinitialiser la conversation
   const resetConversation = () => {
-    setMessages([INITIAL_MESSAGE]);
+    setMessages([createInitialMessage()]);
     setSessionId(null);
   };
 
