@@ -5,7 +5,7 @@ import { Heart, Users, Award } from 'lucide-react';
 
 export default function AboutSection() {
   return (
-    <section className="py-20 px-4 bg-gradient-to-b from-red-50 to-orange-50">
+    <section className="py-20 px-4 bg-gradient-to-b from-red-50 to-orange-50 bg-mexican-pattern relative">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-12">
           <h2 className="text-5xl font-bold text-primary mb-4">

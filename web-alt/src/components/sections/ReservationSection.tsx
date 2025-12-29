@@ -7,7 +7,7 @@ import Link from 'next/link';
 
 export default function ReservationSection() {
   return (
-    <section className="py-20 px-4 bg-gradient-to-b from-white via-green-50 to-yellow-50">
+    <section className="py-20 px-4 bg-gradient-to-b from-white via-green-50 to-yellow-50 bg-mexican-dots relative">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-12">
           <h2 className="text-5xl font-bold text-primary mb-4 flex items-center justify-center gap-3">

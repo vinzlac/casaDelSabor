@@ -6,13 +6,17 @@ import Link from 'next/link';
 
 export default function HeroSection() {
   return (
-    <section className="relative min-h-[90vh] flex items-center justify-center bg-gradient-to-b from-green-500 via-yellow-500 to-red-500 overflow-hidden">
-      {/* Pattern décoratif */}
-      <div className="absolute inset-0 opacity-10">
-        <div className="absolute top-10 left-10 w-32 h-32 border-4 border-white rounded-full"></div>
-        <div className="absolute bottom-20 right-20 w-24 h-24 border-4 border-white rounded-full"></div>
-        <div className="absolute top-1/2 left-1/4 w-16 h-16 border-4 border-white rounded-full"></div>
+    <section className="relative min-h-[90vh] flex items-center justify-center bg-gradient-to-b from-green-500 via-yellow-500 to-red-500 overflow-hidden bg-mexican-pattern">
+      {/* Pattern décoratif mexicain */}
+      <div className="absolute inset-0 opacity-20">
+        <div className="absolute top-10 left-10 w-32 h-32 border-4 border-white rounded-full animate-pulse"></div>
+        <div className="absolute bottom-20 right-20 w-24 h-24 border-4 border-white rounded-full animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+        <div className="absolute top-1/2 left-1/4 w-16 h-16 border-4 border-white rounded-full animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute top-1/3 right-1/4 w-20 h-20 border-4 border-white rounded-full animate-pulse" style={{ animationDelay: '1.5s' }}></div>
       </div>
+      
+      {/* Motifs mexicains supplémentaires */}
+      <div className="absolute inset-0 bg-mexican-dots opacity-30"></div>
 
       <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
         <div className="mb-6 inline-block">

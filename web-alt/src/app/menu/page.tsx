@@ -192,8 +192,61 @@ const menuData = {
 
 export default function MenuPage() {
   return (
-    <main className="min-h-screen bg-gradient-to-b from-white via-orange-50 to-yellow-50">
-      <div className="max-w-7xl mx-auto px-4 py-12">
+    <main className="min-h-screen bg-gradient-to-b from-white via-orange-50 to-yellow-50 py-12 relative overflow-hidden">
+      {/* Image de fond principale - Cuisine mexicaine colorée */}
+      <div className="fixed inset-0 z-0">
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{
+            backgroundImage: 'url(https://images.unsplash.com/photo-1626700051175-6818013e1d4f?w=1920&q=80&auto=format&fit=crop)',
+          }}
+        />
+        {/* Overlay coloré pour garder la lisibilité avec couleurs mexicaines */}
+        <div className="absolute inset-0 bg-gradient-to-b from-white/70 via-orange-50/75 to-yellow-50/70" />
+        {/* Pattern mexicain par-dessus pour effet festif */}
+        <div className="absolute inset-0 bg-mexican-stripes opacity-25" />
+      </div>
+      
+      {/* Images décoratives flottantes de plats mexicains */}
+      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+        {/* Tacos colorés en haut à droite */}
+        <div 
+          className="absolute top-20 right-10 w-64 h-64 rounded-full opacity-20 bg-cover bg-center blur-[2px]"
+          style={{
+            backgroundImage: 'url(https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800&q=80&auto=format&fit=crop)',
+          }}
+        />
+        {/* Guacamole frais en bas à gauche */}
+        <div 
+          className="absolute bottom-20 left-10 w-48 h-48 rounded-full opacity-20 bg-cover bg-center blur-[2px]"
+          style={{
+            backgroundImage: 'url(https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=800&q=80&auto=format&fit=crop)',
+          }}
+        />
+        {/* Burrito au centre gauche */}
+        <div 
+          className="absolute top-1/2 left-1/4 w-40 h-40 rounded-full opacity-18 bg-cover bg-center blur-[2px]"
+          style={{
+            backgroundImage: 'url(https://images.unsplash.com/photo-1565299585323-38174c3a5e0a?w=800&q=80&auto=format&fit=crop)',
+          }}
+        />
+        {/* Enchiladas en bas à droite */}
+        <div 
+          className="absolute bottom-32 right-1/4 w-56 h-56 rounded-full opacity-15 bg-cover bg-center blur-[2px]"
+          style={{
+            backgroundImage: 'url(https://images.unsplash.com/photo-1574340639900-19b4848b1a0a?w=800&q=80&auto=format&fit=crop)',
+          }}
+        />
+        {/* Chiles et épices mexicaines */}
+        <div 
+          className="absolute top-1/3 right-1/3 w-36 h-36 rounded-full opacity-12 bg-cover bg-center blur-[2px]"
+          style={{
+            backgroundImage: 'url(https://images.unsplash.com/photo-1596797038530-2c107229654b?w=800&q=80&auto=format&fit=crop)',
+          }}
+        />
+      </div>
+      
+      <div className="max-w-7xl mx-auto px-4 py-12 relative z-10">
         <div className="text-center mb-12">
           <h1 className="text-6xl font-bold text-primary mb-4">Notre Menu</h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">

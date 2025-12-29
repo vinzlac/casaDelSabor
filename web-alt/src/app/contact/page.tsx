@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function ContactPage() {
   return (
-    <main className="min-h-screen bg-gradient-to-b from-white via-orange-50 to-yellow-50 py-12">
+    <main className="min-h-screen bg-gradient-to-b from-white via-orange-50 to-yellow-50 bg-mexican-waves py-12 relative">
       <div className="max-w-6xl mx-auto px-4">
         <div className="text-center mb-12">
           <h1 className="text-6xl font-bold text-primary mb-4">Contactez-nous</h1>

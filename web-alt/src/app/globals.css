@@ -145,5 +145,48 @@
     animation: fiesta 2s ease-in-out infinite;
   }
   
-  /* Gradients mexicains - Utiliser les classes Tailwind directement */
+  /* Patterns mexicains de fond */
+  .bg-mexican-pattern {
+    background-image: 
+      repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(220, 20, 60, 0.05) 10px, rgba(220, 20, 60, 0.05) 20px),
+      repeating-linear-gradient(-45deg, transparent, transparent 10px, rgba(255, 140, 0, 0.05) 10px, rgba(255, 140, 0, 0.05) 20px);
+  }
+  
+  .bg-mexican-dots {
+    background-image: radial-gradient(circle, rgba(220, 20, 60, 0.1) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+  
+  .bg-mexican-stripes {
+    background-image: 
+      linear-gradient(90deg, rgba(220, 20, 60, 0.1) 0%, transparent 50%),
+      linear-gradient(0deg, rgba(255, 215, 0, 0.1) 0%, transparent 50%);
+  }
+  
+  .bg-mexican-waves {
+    background-image: 
+      repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(34, 139, 34, 0.1) 2px, rgba(34, 139, 34, 0.1) 4px);
+  }
+  
+  /* Overlay avec opacité pour la lisibilité */
+  .bg-mexican-overlay {
+    position: relative;
+  }
+  
+  .bg-mexican-overlay::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(220, 20, 60, 0.05) 0%, rgba(255, 140, 0, 0.05) 50%, rgba(255, 215, 0, 0.05) 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  
+  .bg-mexican-overlay > * {
+    position: relative;
+    z-index: 1;
+  }
 }

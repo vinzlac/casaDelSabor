@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function ReservationPage() {
   return (
-    <main className="min-h-screen bg-gradient-to-b from-white via-orange-50 to-yellow-50 py-12">
+    <main className="min-h-screen bg-gradient-to-b from-white via-orange-50 to-yellow-50 bg-mexican-pattern py-12 relative">
       <div className="max-w-4xl mx-auto px-4">
         <div className="text-center mb-12">
           <h1 className="text-6xl font-bold text-primary mb-4">Réservez votre Table</h1>
