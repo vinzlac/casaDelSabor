@@ -115,17 +115,22 @@ curl -X POST http://localhost:8000/chat \
 agent/
 ├── main.py              # Application FastAPI
 ├── config.py            # Configuration (variables d'env)
-├── requirements.txt     # Dépendances Python
+├── pyproject.toml       # Configuration uv et dépendances
+├── justfile            # Commandes just (task runner)
 ├── rag/
 │   ├── __init__.py
+│   ├── chain.py         # RAG Chain + Agent LangChain
+│   ├── tools.py         # Outils (réservation, etc.)
+│   ├── memory.py        # Gestion de la mémoire de session
 │   ├── embeddings.py    # Mistral Embeddings
 │   ├── vectorstore.py   # Client Qdrant
-│   ├── ingestion.py     # Chargement et indexation
-│   └── chain.py         # RAG Chain LangChain
-└── documents/           # Documents du restaurant
-    ├── menu.md
-    ├── horaires.md
-    └── info.md
+│   └── ingestion.py     # Chargement et indexation documents
+├── documents/           # Documents du restaurant
+│   ├── menu.md
+│   ├── horaires.md
+│   └── info.md
+└── scripts/
+    └── conversation.py  # Script de conversation interactive
 ```
 
 ## 🔧 Configuration
@@ -146,15 +151,47 @@ Variables d'environnement disponibles :
 | `CHUNK_OVERLAP` | Overlap des chunks | `50` |
 | `TOP_K_RESULTS` | Nombre de résultats RAG | `4` |
 
-## 🚢 Déploiement (Railway)
+## 🚢 Déploiement
+
+### Railway (recommandé)
 
 1. Créer un projet sur [Railway](https://railway.app/)
 2. Connecter le repo GitHub
 3. Configurer le root directory : `/agent`
-4. Ajouter les variables d'environnement
-5. Configurer la commande de démarrage : `uvicorn main:app --host 0.0.0.0 --port $PORT`
+4. Ajouter les variables d'environnement :
+   - `MISTRAL_API_KEY`
+   - `QDRANT_URL`
+   - `QDRANT_API_KEY`
+5. Configurer la commande de démarrage : `uv run uvicorn main:app --host 0.0.0.0 --port $PORT`
 
 Railway détectera automatiquement Python via `pyproject.toml`.
+
+### Autres plateformes
+
+Le serveur peut être déployé sur n'importe quelle plateforme supportant Python :
+- Heroku
+- Render
+- Fly.io
+- AWS/GCP/Azure
+
+Commande de démarrage :
+```bash
+uv run uvicorn main:app --host 0.0.0.0 --port $PORT
+```
+
+## 🔗 Intégration avec les clients
+
+L'agent expose une API REST accessible par :
+- **Web App** : Via l'API Route Next.js (`/api/chat`)
+- **Mobile App** : Directement via HTTP POST vers `/chat`
+
+Les deux clients utilisent le même endpoint `/chat` avec le format :
+```json
+{
+  "message": "Votre question",
+  "session_id": "optional-session-id"
+}
+```
 
 ## 📝 Ajouter des documents
 

@@ -111,11 +111,13 @@ sequenceDiagram
 
 ```
 casaDelSabor/
-├── src/                      # Frontend Next.js
-│   ├── app/
-│   │   ├── api/chat/         # API Route proxy
-│   │   └── page.tsx
-│   └── components/chat/      # Composants React
+├── web/                      # Frontend Next.js
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── api/chat/     # API Route proxy
+│   │   │   └── page.tsx
+│   │   └── components/chat/ # Composants React
+│   └── public/               # Assets statiques
 │
 ├── agent/                    # Backend Python
 │   ├── main.py               # FastAPI app
@@ -124,15 +126,15 @@ casaDelSabor/
 │   │   ├── chain.py          # RAG Chain + Agent
 │   │   ├── tools.py          # Outils (réservation)
 │   │   ├── memory.py         # Gestion sessions
-│   │   ├── embeddings.py     # Mistral Embeddings
-│   │   ├── vectorstore.py    # Client Qdrant
-│   │   └── ingestion.py      # Ingestion documents
+│   │   ├── embeddings.py    # Mistral Embeddings
+│   │   ├── vectorstore.py   # Client Qdrant
+│   │   └── ingestion.py     # Ingestion documents
 │   └── documents/            # Documents restaurant
 │       ├── menu.md
 │       ├── horaires.md
 │       └── info.md
 │
-└── mobile/                   # App React Native
+└── mobile/                   # App React Native/Expo
     ├── App.tsx
     └── src/
         ├── screens/
@@ -140,7 +142,62 @@ casaDelSabor/
         └── services/
 ```
 
-## Démarrage rapide
+## 📚 Documentation par module
+
+Chaque module a sa propre documentation détaillée :
+
+- **[Agent (Backend)](./agent/README.md)** - API Python FastAPI avec RAG
+- **[Web App](./web/README.md)** - Application Next.js
+- **[Mobile App](./mobile/README.md)** - Application React Native/Expo
+
+## 🚀 Comment lancer l'application
+
+Pour faire fonctionner l'application complète, vous devez lancer **3 composants** dans l'ordre suivant :
+
+### Étape 1 : Agent Python (Backend)
+
+Dans un premier terminal :
+
+```bash
+cd agent
+cp .env.example .env          # Configurer les clés API (si pas déjà fait)
+just install                  # Installer les dépendances
+just ingest                   # Indexer les documents (première fois uniquement)
+just dev                      # Lancer le serveur sur http://localhost:8000
+```
+
+✅ Le serveur backend est maintenant accessible sur `http://localhost:8000`
+
+### Étape 2 : Frontend Web (Optionnel)
+
+Dans un deuxième terminal :
+
+```bash
+cd web
+npm install                  # Installer les dépendances (première fois uniquement)
+npm run dev -- --hostname 0.0.0.0
+```
+
+✅ L'application web est maintenant accessible sur `http://localhost:3000`
+
+### Étape 3 : App Mobile
+
+Dans un troisième terminal :
+
+```bash
+cd mobile
+npm install                  # Installer les dépendances (première fois uniquement)
+npm run dev                  # Détecte automatiquement l'IP et lance Expo
+```
+
+Ensuite, sur votre téléphone :
+1. Ouvrir **Expo Go**
+2. Scanner le **QR code** affiché dans le terminal
+3. L'application se charge automatiquement
+
+---
+
+## Démarrage rapide (référence)
 
 ### 1. Agent Python
 
@@ -155,6 +212,7 @@ just dev                      # Lancer le serveur
 ### 2. Frontend Web
 
 ```bash
+cd web
 npm install
 npm run dev -- --hostname 0.0.0.0
 ```
