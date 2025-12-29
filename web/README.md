@@ -97,10 +97,34 @@ const AGENT_URL = process.env.AGENT_URL || 'http://localhost:8000';
 
 ### Vercel (recommandé)
 
+Oui, il est tout à fait possible de déployer uniquement le sous-répertoire `web/` sur Vercel depuis un monorepo. Voici deux méthodes :
+
+#### Méthode 1 : Via l'interface Vercel (recommandé)
+
 1. Connecter votre repo GitHub à Vercel
-2. Configurer le root directory : `/web`
-3. Ajouter la variable d'environnement `AGENT_URL` avec l'URL de votre agent déployé
-4. Déployer
+2. Dans les paramètres du projet Vercel :
+   - Aller dans **Settings** → **General**
+   - Dans la section **Root Directory**, cliquer sur **Edit**
+   - Sélectionner `web` comme répertoire racine
+   - Cliquer sur **Save**
+3. Aller dans **Settings** → **Environment Variables**
+   - Ajouter la variable `AGENT_URL` avec l'URL de votre agent déployé (ex: `https://votre-agent.herokuapp.com`)
+4. Déployer (automatique lors du push ou via le dashboard)
+
+#### Méthode 2 : Via le CLI Vercel
+
+```bash
+cd web
+vercel --cwd .
+```
+
+Ou depuis la racine du repo :
+
+```bash
+vercel --cwd web
+```
+
+Puis ajouter la variable d'environnement `AGENT_URL` via l'interface ou le CLI.
 
 ### Autres plateformes
 

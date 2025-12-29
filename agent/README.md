@@ -155,16 +155,77 @@ Variables d'environnement disponibles :
 
 ### Railway (recommandé)
 
+Railway supporte le déploiement depuis un sous-répertoire. Deux méthodes sont disponibles :
+
+#### Méthode 1 : Configuration via l'interface Railway (recommandée)
+
 1. Créer un projet sur [Railway](https://railway.app/)
 2. Connecter le repo GitHub
-3. Configurer le root directory : `/agent`
-4. Ajouter les variables d'environnement :
-   - `MISTRAL_API_KEY`
-   - `QDRANT_URL`
-   - `QDRANT_API_KEY`
-5. Configurer la commande de démarrage : `uv run uvicorn main:app --host 0.0.0.0 --port $PORT`
+3. Dans les **Settings** du service :
+   - **Root Directory** : Définir `/agent`
+   - **Start Command** : `uv run uvicorn main:app --host 0.0.0.0 --port $PORT`
+4. Ajouter les variables d'environnement dans **Variables** :
+   - `MISTRAL_API_KEY` (requis)
+   - `QDRANT_URL` (requis)
+   - `QDRANT_API_KEY` (requis)
+   - `QDRANT_COLLECTION_NAME` (optionnel, défaut: `casa_del_sabor`)
+   - `MISTRAL_MODEL` (optionnel, défaut: `mistral-small-latest`)
+   - `MISTRAL_EMBEDDING_MODEL` (optionnel, défaut: `mistral-embed`)
 
-Railway détectera automatiquement Python via `pyproject.toml`.
+Railway détectera automatiquement Python via `pyproject.toml` et installera les dépendances avec `uv`.
+
+#### Méthode 2 : Configuration via fichiers (déjà configuré)
+
+Un fichier `railway.json` a été créé à la racine du projet et un `railway.toml` dans le dossier `agent/` pour automatiser la configuration.
+
+**Étapes de déploiement via GitHub :**
+
+1. **Pousser votre code sur GitHub** (si ce n'est pas déjà fait) :
+   ```bash
+   git add .
+   git commit -m "Configure Railway deployment"
+   git push origin main
+   ```
+
+2. **Créer un projet sur Railway** :
+   - Aller sur [Railway](https://railway.app/)
+   - Se connecter avec votre compte GitHub
+   - Cliquer sur **"New Project"**
+
+3. **Connecter le repository GitHub** :
+   - Choisir **"Deploy from GitHub repo"**
+   - Sélectionner votre repository `casaDelSabor`
+   - Railway détectera automatiquement le fichier `railway.json` à la racine
+
+4. **Configuration automatique** :
+   - Railway lira `railway.json` et configurera :
+     - Le build : `cd agent && uv sync --frozen`
+     - La commande de démarrage : `cd agent && uv run uvicorn main:app --host 0.0.0.0 --port $PORT`
+   - Le **Root Directory** sera automatiquement configuré via le fichier
+
+5. **Ajouter les variables d'environnement** :
+   Dans l'onglet **Variables** du service Railway, ajouter :
+   - `MISTRAL_API_KEY` (requis)
+   - `QDRANT_URL` (requis)
+   - `QDRANT_API_KEY` (requis)
+   - `QDRANT_COLLECTION_NAME` (optionnel, défaut: `casa_del_sabor`)
+   - `MISTRAL_MODEL` (optionnel, défaut: `mistral-small-latest`)
+   - `MISTRAL_EMBEDDING_MODEL` (optionnel, défaut: `mistral-embed`)
+
+6. **Déploiement automatique** :
+   - Railway déploiera automatiquement à chaque push sur la branche connectée
+   - Vous pouvez voir les logs en temps réel dans l'interface Railway
+
+**Note** : Après le déploiement, n'oubliez pas d'appeler l'endpoint `/ingest` pour indexer les documents :
+```bash
+curl -X POST https://votre-app.up.railway.app/ingest
+```
+
+**Avantages de cette méthode** :
+- ✅ Configuration versionnée dans le repo
+- ✅ Déploiement automatique à chaque push
+- ✅ Pas besoin de configurer manuellement le Root Directory
+- ✅ Facile à reproduire sur d'autres environnements
 
 ### Autres plateformes
 
