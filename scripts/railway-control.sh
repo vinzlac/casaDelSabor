@@ -1,0 +1,145 @@
+#!/bin/bash
+# Script pour contrôler le service Railway Casa del Sabor
+
+set -e
+
+SERVICE_NAME="casaDelSabor"
+REGION="us-west1"  # Région par défaut (peut être modifiée)
+
+# Couleurs pour les messages
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Fonction d'aide
+show_help() {
+    echo "Usage: $0 [COMMAND]"
+    echo ""
+    echo "Commandes disponibles:"
+    echo "  stop      Arrêter le service (mettre les instances à 0)"
+    echo "  start     Démarrer le service (mettre les instances à 1)"
+    echo "  status    Afficher le statut du service"
+    echo "  restart   Redémarrer le service (stop puis start)"
+    echo "  scale N   Mettre à l'échelle à N instances"
+    echo ""
+    echo "Exemples:"
+    echo "  $0 stop"
+    echo "  $0 start"
+    echo "  $0 scale 2"
+    echo ""
+}
+
+# Vérifier que railway CLI est installé
+check_railway_cli() {
+    if ! command -v railway &> /dev/null; then
+        echo -e "${RED}❌ Railway CLI n'est pas installé.${NC}"
+        echo "Installez-le avec: npm i -g @railway/cli"
+        exit 1
+    fi
+}
+
+# Vérifier que le projet est lié
+check_linked() {
+    if ! railway status &> /dev/null; then
+        echo -e "${YELLOW}⚠️  Le projet n'est pas lié.${NC}"
+        echo "Exécutez: railway link"
+        exit 1
+    fi
+}
+
+# Arrêter le service
+stop_service() {
+    echo -e "${YELLOW}🛑 Arrêt du service ${SERVICE_NAME}...${NC}"
+    echo -e "${YELLOW}⚠️  Note: La commande 'railway scale' a un bug connu.${NC}"
+    echo -e "${YELLOW}    Utilisation de 'railway down' à la place...${NC}"
+    railway down -y
+    echo -e "${GREEN}✅ Service arrêté (déploiement supprimé)${NC}"
+    echo -e "${YELLOW}💡 Pour redémarrer, utilisez: $0 start${NC}"
+}
+
+# Démarrer le service
+start_service() {
+    echo -e "${YELLOW}🚀 Démarrage du service ${SERVICE_NAME}...${NC}"
+    echo -e "${YELLOW}    Redéploiement du service...${NC}"
+    railway up
+    echo -e "${GREEN}✅ Service démarré${NC}"
+}
+
+# Afficher le statut
+show_status() {
+    echo -e "${YELLOW}📊 Statut du service:${NC}"
+    railway service status
+    echo ""
+    railway status
+}
+
+# Redémarrer le service
+restart_service() {
+    echo -e "${YELLOW}🔄 Redémarrage du service ${SERVICE_NAME}...${NC}"
+    stop_service
+    sleep 2
+    start_service
+    echo -e "${GREEN}✅ Service redémarré${NC}"
+}
+
+# Mettre à l'échelle
+scale_service() {
+    local instances=$1
+    if [ -z "$instances" ]; then
+        echo -e "${RED}❌ Nombre d'instances requis${NC}"
+        echo "Usage: $0 scale N"
+        exit 1
+    fi
+    
+    echo -e "${YELLOW}📈 Mise à l'échelle à ${instances} instance(s)...${NC}"
+    echo -e "${RED}⚠️  ATTENTION: La commande 'railway scale' a un bug connu dans le CLI v4.16.1${NC}"
+    echo -e "${YELLOW}    Tentative avec la syntaxe standard...${NC}"
+    
+    # Essayer la commande scale (peut échouer à cause du bug)
+    if railway scale --${REGION} ${instances} 2>/dev/null; then
+        echo -e "${GREEN}✅ Service mis à l'échelle à ${instances} instance(s)${NC}"
+    else
+        echo -e "${RED}❌ Échec de la commande scale (bug connu)${NC}"
+        echo -e "${YELLOW}💡 Alternatives:${NC}"
+        echo -e "   1. Utiliser l'interface web Railway: https://railway.app/"
+        echo -e "   2. Utiliser 'railway down' pour arrêter, puis 'railway up' pour redémarrer"
+        exit 1
+    fi
+}
+
+# Main
+main() {
+    check_railway_cli
+    check_linked
+    
+    case "${1:-}" in
+        stop)
+            stop_service
+            ;;
+        start)
+            start_service
+            ;;
+        status)
+            show_status
+            ;;
+        restart)
+            restart_service
+            ;;
+        scale)
+            scale_service "$2"
+            ;;
+        help|--help|-h)
+            show_help
+            ;;
+        *)
+            echo -e "${RED}❌ Commande inconnue: ${1:-}${NC}"
+            echo ""
+            show_help
+            exit 1
+            ;;
+    esac
+}
+
+main "$@"
+
