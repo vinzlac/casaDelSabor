@@ -1,16 +1,42 @@
 #!/bin/bash
 # Script pour contrôler le service Railway Casa del Sabor
 
-set -e
-
 SERVICE_NAME="casaDelSabor"
 REGION="us-west1"  # Région par défaut (peut être modifiée)
+MAX_RETRIES=3
+RETRY_DELAY=5
 
 # Couleurs pour les messages
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
 NC='\033[0m' # No Color
+
+# Fonction pour exécuter une commande avec retries
+execute_with_retry() {
+    local cmd="$1"
+    local description="$2"
+    local retry_count=0
+    
+    while [ $retry_count -lt $MAX_RETRIES ]; do
+        echo -e "${BLUE}🔄 Tentative $((retry_count + 1))/$MAX_RETRIES: ${description}${NC}"
+        
+        if eval "$cmd"; then
+            return 0
+        fi
+        
+        local exit_code=$?
+        retry_count=$((retry_count + 1))
+        
+        if [ $retry_count -lt $MAX_RETRIES ]; then
+            echo -e "${YELLOW}⏳ Attente ${RETRY_DELAY}s avant de réessayer...${NC}"
+            sleep $RETRY_DELAY
+        fi
+    done
+    
+    return $exit_code
+}
 
 # Fonction d'aide
 show_help() {
@@ -37,6 +63,13 @@ check_railway_cli() {
         echo "Installez-le avec: npm i -g @railway/cli"
         exit 1
     fi
+    
+    # Vérifier s'il y a une mise à jour disponible
+    local current_version=$(railway --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+    if [ -n "$current_version" ]; then
+        echo -e "${BLUE}ℹ️  Railway CLI version: ${current_version}${NC}"
+        echo -e "${YELLOW}💡 Si vous rencontrez des problèmes, mettez à jour avec: brew upgrade railway${NC}"
+    fi
 }
 
 # Vérifier que le projet est lié
@@ -53,17 +86,37 @@ stop_service() {
     echo -e "${YELLOW}🛑 Arrêt du service ${SERVICE_NAME}...${NC}"
     echo -e "${YELLOW}⚠️  Note: La commande 'railway scale' a un bug connu.${NC}"
     echo -e "${YELLOW}    Utilisation de 'railway down' à la place...${NC}"
-    railway down -y
-    echo -e "${GREEN}✅ Service arrêté (déploiement supprimé)${NC}"
-    echo -e "${YELLOW}💡 Pour redémarrer, utilisez: $0 start${NC}"
+    
+    if execute_with_retry "railway down -y" "Arrêt du service"; then
+        echo -e "${GREEN}✅ Service arrêté (déploiement supprimé)${NC}"
+        echo -e "${YELLOW}💡 Pour redémarrer, utilisez: $0 start${NC}"
+    else
+        echo -e "${RED}❌ Échec après ${MAX_RETRIES} tentatives${NC}"
+        echo -e "${YELLOW}💡 Suggestions:${NC}"
+        echo -e "   1. Vérifier votre connexion internet"
+        echo -e "   2. Mettre à jour le CLI Railway: brew upgrade railway"
+        echo -e "   3. Utiliser l'interface web: https://railway.app/"
+        echo -e "   4. Réessayer plus tard"
+        exit 1
+    fi
 }
 
 # Démarrer le service
 start_service() {
     echo -e "${YELLOW}🚀 Démarrage du service ${SERVICE_NAME}...${NC}"
     echo -e "${YELLOW}    Redéploiement du service...${NC}"
-    railway up
-    echo -e "${GREEN}✅ Service démarré${NC}"
+    
+    if execute_with_retry "railway up" "Démarrage du service"; then
+        echo -e "${GREEN}✅ Service démarré${NC}"
+    else
+        echo -e "${RED}❌ Échec après ${MAX_RETRIES} tentatives${NC}"
+        echo -e "${YELLOW}💡 Suggestions:${NC}"
+        echo -e "   1. Vérifier votre connexion internet"
+        echo -e "   2. Mettre à jour le CLI Railway: brew upgrade railway"
+        echo -e "   3. Utiliser l'interface web: https://railway.app/"
+        echo -e "   4. Réessayer plus tard"
+        exit 1
+    fi
 }
 
 # Afficher le statut
