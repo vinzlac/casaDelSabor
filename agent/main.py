@@ -1,7 +1,10 @@
 """Application FastAPI pour l'agent RAG Casa del Sabor."""
 
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException
+from pathlib import Path
+import shutil
+
+from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -9,6 +12,7 @@ from config import get_settings
 from rag import ingest_documents, ask_question, get_vectorstore
 from rag.ingestion import get_ingestion_status
 from rag.vectorstore import get_collection_info
+from security import verify_api_key
 
 
 # Modèles Pydantic pour les requêtes/réponses
@@ -53,6 +57,17 @@ class StatusResponse(BaseModel):
     collection_info: dict
 
 
+class UploadResponse(BaseModel):
+    """Réponse d'upload."""
+    success: bool
+    filename: str
+    message: str
+
+
+# Chemin vers le dossier des documents
+DOCUMENTS_DIR = Path(__file__).parent / "documents"
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Gestion du cycle de vie de l'application."""
@@ -91,14 +106,14 @@ async def health_check():
     )
 
 
-@app.get("/status", response_model=StatusResponse)
+@app.get("/status", response_model=StatusResponse, dependencies=[Depends(verify_api_key)])
 async def get_status():
     """Retourne le statut détaillé de l'agent."""
     status = get_ingestion_status()
     return StatusResponse(**status)
 
 
-@app.post("/ingest", response_model=IngestResponse)
+@app.post("/ingest", response_model=IngestResponse, dependencies=[Depends(verify_api_key)])
 async def ingest(request: IngestRequest = IngestRequest()):
     """
     Ingère les documents dans le vector store.
@@ -116,6 +131,46 @@ async def ingest(request: IngestRequest = IngestRequest()):
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur d'ingestion: {str(e)}")
+
+
+@app.post("/upload", response_model=UploadResponse, dependencies=[Depends(verify_api_key)])
+async def upload_document(file: UploadFile = File(...)):
+    """
+    Upload un nouveau document markdown pour l'indexation.
+    
+    Args:
+        file: Fichier markdown à uploader
+        
+    Returns:
+        Confirmation de l'upload
+    """
+    # Vérifier que c'est un fichier .md
+    if not file.filename or not file.filename.endswith('.md'):
+        raise HTTPException(
+            status_code=400,
+            detail="Seuls les fichiers .md sont acceptés"
+        )
+    
+    # S'assurer que le dossier documents existe
+    DOCUMENTS_DIR.mkdir(exist_ok=True)
+    
+    # Sauvegarder le fichier
+    file_path = DOCUMENTS_DIR / file.filename
+    
+    try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        
+        return UploadResponse(
+            success=True,
+            filename=file.filename,
+            message=f"Fichier {file.filename} uploadé avec succès. Appelez /ingest pour l'indexer."
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erreur lors de l'upload: {str(e)}"
+        )
 
 
 @app.post("/chat", response_model=ChatResponse)

@@ -41,28 +41,37 @@ start:
 # ============================================
 
 # Indexe les documents dans Qdrant
+# Note: L'API_KEY est chargée automatiquement depuis .env.local ou .env par l'application
 ingest:
-    curl -s -X POST http://localhost:{{default_port}}/ingest | {{python}} -m json.tool --no-ensure-ascii
+    ./scripts/ingest.sh {{default_port}}
 
 # Force la réindexation des documents
 reindex:
-    curl -s -X POST http://localhost:{{default_port}}/ingest \
-        -H "Content-Type: application/json" \
-        -d '{"force_reindex": true}' | {{python}} -m json.tool --no-ensure-ascii
+    ./scripts/reindex.sh {{default_port}}
 
 # Vérifie le statut de l'agent
 status:
-    curl -s http://localhost:{{default_port}}/status | {{python}} -m json.tool --no-ensure-ascii
+    ./scripts/status.sh {{default_port}}
 
 # Health check
 health:
     curl -s http://localhost:{{default_port}}/health | {{python}} -m json.tool --no-ensure-ascii
 
+# Statut détaillé de l'agent (via script)
+agent-status:
+    ./scripts/agent-status.sh
+
+# Health check uniquement
+agent-health:
+    ./scripts/agent-status.sh --health
+
+# Statut complet
+agent-status-full:
+    ./scripts/agent-status.sh --status
+
 # Test une question au chatbot (sans mémoire)
 chat message:
-    curl -s -X POST http://localhost:{{default_port}}/chat \
-        -H "Content-Type: application/json" \
-        -d '{"message": "{{message}}"}' | {{python}} -m json.tool --no-ensure-ascii
+    ./scripts/chat.sh {{default_port}} "{{message}}"
 
 # Conversation interactive avec mémoire
 conversation:
@@ -112,3 +121,46 @@ docker-build:
 # Lance le container Docker
 docker-run:
     docker run -p 8000:8000 --env-file .env casa-del-sabor-agent
+
+# ============================================
+# 🗄️ Qdrant Local (Docker)
+# ============================================
+
+# Démarre Qdrant en local avec Docker
+qdrant-up:
+    docker-compose -f ../docker-compose.yml up -d qdrant
+    @echo "✅ Qdrant démarré sur http://localhost:6333"
+    @echo "📊 Dashboard: http://localhost:6333/dashboard"
+
+# Arrête Qdrant local
+qdrant-down:
+    docker-compose -f ../docker-compose.yml down
+
+# Affiche les logs de Qdrant
+qdrant-logs:
+    docker-compose -f ../docker-compose.yml logs -f qdrant
+
+# Vérifie le statut de Qdrant (health check simple)
+qdrant-status:
+    curl -s http://localhost:6333/health | {{python}} -m json.tool
+
+# Statut détaillé de Qdrant (local ou prod)
+qdrant-info env="local":
+    {{python}} scripts/qdrant_status.py --env {{env}}
+
+# Statut complet de Qdrant (toutes les infos)
+qdrant-info-all env="local":
+    {{python}} scripts/qdrant_status.py --env {{env}} --all
+
+# Collections Qdrant
+qdrant-collections env="local":
+    {{python}} scripts/qdrant_status.py --env {{env}} --collections
+
+# Détails d'une collection spécifique
+qdrant-collection name env="local":
+    {{python}} scripts/qdrant_status.py --env {{env}} --collection {{name}}
+
+# Nettoie les données Qdrant (supprime le volume)
+qdrant-clean:
+    docker-compose -f ../docker-compose.yml down -v
+    @echo "⚠️  Toutes les données Qdrant ont été supprimées"

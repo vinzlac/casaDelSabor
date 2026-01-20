@@ -152,6 +152,33 @@ Chaque module a sa propre documentation détaillée :
 
 ## 🚀 Comment lancer l'application
 
+### 🎯 Méthode rapide (recommandée)
+
+Un script unifié permet de démarrer tous les services en une seule commande :
+
+```bash
+./start-dev.sh
+```
+
+Ce script démarre automatiquement :
+- ✅ Qdrant (via Docker Compose)
+- ✅ Agent Python (FastAPI sur http://localhost:8000)
+- ✅ Frontend Next.js (sur http://localhost:3000)
+
+**Arrêter tous les services** :
+```bash
+./stop-dev.sh
+```
+
+> **Note** : Pour la première utilisation, assurez-vous d'avoir :
+> - Docker Desktop en cours d'exécution
+> - Les dépendances installées (`cd agent && just install` et `cd web && npm install`)
+> - Le fichier `agent/.env.local` configuré (voir [Agent README](./agent/README.md))
+
+---
+
+### 📝 Méthode manuelle (détaillée)
+
 Pour faire fonctionner l'application complète, vous devez lancer **3 composants** dans l'ordre suivant :
 
 ### Étape 1 : Agent Python (Backend)
@@ -368,13 +395,52 @@ npm run get-ip
 
 ## Configuration
 
-### Variables d'environnement (agent/.env)
+### Variables d'environnement
+
+#### Backend (agent/.env.local)
 
 | Variable | Description |
 |----------|-------------|
 | `MISTRAL_API_KEY` | Clé API Mistral AI |
-| `QDRANT_URL` | URL Qdrant Cloud |
-| `QDRANT_API_KEY` | Clé API Qdrant |
+| `QDRANT_URL` | URL Qdrant (local: `http://localhost:6333` ou Cloud) |
+| `QDRANT_API_KEY` | Clé API Qdrant (vide pour Qdrant local) |
+| `API_KEY` | Clé API pour sécuriser les endpoints admin (optionnel) |
+
+Voir [Agent README](./agent/README.md) pour plus de détails.
+
+#### Frontend (web/.env.local)
+
+| Variable | Description |
+|----------|-------------|
+| `AGENT_URL` | URL de l'agent backend (local: `http://localhost:8000`) |
+
+Créez `web/.env.local` depuis `web/.env.local.example` :
+```bash
+cd web
+cp .env.local.example .env.local
+```
+
+### 🚢 Configuration pour Vercel (Production)
+
+Pour déployer le frontend Next.js sur Vercel et le connecter à l'agent Railway :
+
+1. **Via l'interface Vercel** :
+   - Aller dans **Settings** → **Environment Variables**
+   - Ajouter la variable `AGENT_URL` avec la valeur : `https://casadelsabor.up.railway.app`
+   - Sélectionner les environnements (Production, Preview, Development)
+
+2. **Via le CLI Vercel** :
+   ```bash
+   cd web
+   vercel env add AGENT_URL
+   # Entrer: https://casadelsabor.up.railway.app
+   ```
+
+3. **Vérifier la configuration** :
+   - Après le déploiement, vérifiez que l'application se connecte bien à l'agent
+   - Les logs Vercel montreront les erreurs de connexion si l'URL est incorrecte
+
+> **Note** : Assurez-vous que l'agent Railway est bien déployé et accessible avant de configurer Vercel.
 
 ## Technologies
 
@@ -396,3 +462,52 @@ npm run get-ip
 - Outil de réservation (prototype)
 - Interface WhatsApp-like
 - Support Web et Mobile
+
+## 🔍 Scripts de vérification
+
+Des scripts sont disponibles pour vérifier le statut de chaque composant :
+
+### Vérifier Qdrant
+
+```bash
+# Local (défaut)
+agent/scripts/qdrant-status.sh local --all
+
+# Production (Cloud)
+agent/scripts/qdrant-status.sh prod --all
+
+# Via just
+cd agent
+just qdrant-info local
+just qdrant-info-all prod
+```
+
+### Vérifier l'agent Python
+
+```bash
+# Vérification complète
+agent/scripts/agent-status.sh
+
+# Options
+agent/scripts/agent-status.sh --health    # Health check uniquement
+agent/scripts/agent-status.sh --status    # Statut détaillé (nécessite API_KEY)
+agent/scripts/agent-status.sh --logs     # Voir les logs
+
+# Via just
+cd agent
+just agent-status
+just agent-health
+```
+
+### Vérifier le frontend Next.js
+
+```bash
+# Vérification complète
+web/scripts/front-status.sh
+
+# Options
+web/scripts/front-status.sh --health    # Health check uniquement
+web/scripts/front-status.sh --api       # Tester l'API route /api/chat
+web/scripts/front-status.sh --env      # Afficher la configuration
+web/scripts/front-status.sh --logs     # Voir les logs
+```

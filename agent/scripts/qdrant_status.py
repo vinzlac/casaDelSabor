@@ -11,13 +11,31 @@ Usage:
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
 # Ajouter le répertoire parent au path pour importer les modules
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from config import get_settings
+try:
+    from dotenv import dotenv_values
+except ImportError:
+    # Fallback si python-dotenv n'est pas installé
+    def dotenv_values(file_path):
+        """Simple parser pour les fichiers .env"""
+        values = {}
+        if not Path(file_path).exists():
+            return values
+        with open(file_path, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    key, value = line.split('=', 1)
+                    values[key.strip()] = value.strip().strip('"').strip("'")
+        return values
+
+from config import Settings
 from rag.vectorstore import get_qdrant_client
 
 
@@ -31,22 +49,34 @@ def print_section(title: str):
 def check_cluster_status(client):
     """Vérifie le statut du cluster Qdrant."""
     try:
-        cluster_info = client.get_cluster_info()
         print_section("📊 Statut du Cluster")
         
-        print(f"État: {cluster_info.status}")
-        print(f"Consensus: {cluster_info.consensus_thread_status}")
-        
-        if hasattr(cluster_info, 'peers'):
-            print(f"\nPairs (Peers): {len(cluster_info.peers)}")
-            for peer_id, peer_info in cluster_info.peers.items():
-                print(f"  - Peer {peer_id}: {peer_info}")
-        
-        if hasattr(cluster_info, 'raft_info'):
-            print(f"\nRaft Info:")
-            print(f"  - Term: {cluster_info.raft_info.term}")
-            print(f"  - Commit: {cluster_info.raft_info.commit}")
-            print(f"  - Pending operations: {cluster_info.raft_info.pending_operations}")
+        # get_cluster_info() n'existe que pour les clusters Qdrant Cloud
+        # Pour les instances locales, on essaie d'abord, sinon on affiche un message
+        try:
+            cluster_info = client.get_cluster_info()
+            print(f"État: {cluster_info.status}")
+            print(f"Consensus: {cluster_info.consensus_thread_status}")
+            
+            if hasattr(cluster_info, 'peers'):
+                print(f"\nPairs (Peers): {len(cluster_info.peers)}")
+                for peer_id, peer_info in cluster_info.peers.items():
+                    print(f"  - Peer {peer_id}: {peer_info}")
+            
+            if hasattr(cluster_info, 'raft_info'):
+                print(f"\nRaft Info:")
+                print(f"  - Term: {cluster_info.raft_info.term}")
+                print(f"  - Commit: {cluster_info.raft_info.commit}")
+                print(f"  - Pending operations: {cluster_info.raft_info.pending_operations}")
+        except AttributeError:
+            # Instance locale (pas de cluster)
+            print("ℹ️  Instance locale Qdrant (mode standalone)")
+            print("   Les informations de cluster ne sont disponibles que pour Qdrant Cloud")
+            print("   ✅ L'instance fonctionne correctement")
+        except Exception as e:
+            # Autre erreur (peut-être que l'API n'est pas disponible)
+            print(f"ℹ️  Impossible de récupérer les infos de cluster: {e}")
+            print("   (Normal pour une instance locale)")
         
         return True
     except Exception as e:
@@ -123,17 +153,25 @@ def show_collection_details(client, collection_name: str):
         
         return True
     except Exception as e:
-        print(f"❌ Erreur lors de la récupération de la collection: {e}")
-        return False
+        # Vérifier si c'est une erreur 404 (collection n'existe pas)
+        error_str = str(e)
+        if "404" in error_str or "doesn't exist" in error_str or "Not found" in error_str:
+            print(f"ℹ️  La collection '{collection_name}' n'a pas encore été créée.")
+            print(f"💡 Pour créer et indexer la collection, exécutez:")
+            print(f"   cd agent && just ingest")
+            return True  # Pas une vraie erreur, juste une info
+        else:
+            print(f"❌ Erreur lors de la récupération de la collection: {e}")
+            return False
 
 
-def check_connection(client):
+def check_connection(client, qdrant_url: str):
     """Vérifie la connexion au cluster."""
     try:
         print_section("🔌 Connexion")
         collections = client.get_collections()
         print(f"✅ Connexion réussie!")
-        print(f"   URL: {client._client.url}")
+        print(f"   URL: {qdrant_url}")
         print(f"   Collections disponibles: {len(collections.collections)}")
         return True
     except Exception as e:
@@ -147,11 +185,14 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Exemples:
-  %(prog)s                    # Affiche le statut de base
+  %(prog)s                    # Affiche le statut de base (local par défaut)
   %(prog)s --collections      # Liste toutes les collections
   %(prog)s --collection casa_del_sabor  # Détails d'une collection
   %(prog)s --cluster          # Statut du cluster
   %(prog)s --all              # Tout afficher
+  %(prog)s --env local        # Utiliser .env.local (défaut)
+  %(prog)s --env prod         # Utiliser .env (production)
+  %(prog)s --env prod --all   # Tout afficher depuis .env
         """
     )
     
@@ -185,25 +226,67 @@ Exemples:
         help="Sortie au format JSON"
     )
     
+    parser.add_argument(
+        "--env",
+        type=str,
+        choices=["local", "prod"],
+        default="local",
+        help="Environnement à utiliser: 'local' pour .env.local (défaut), 'prod' pour .env"
+    )
+    
     args = parser.parse_args()
     
-    # Charger la configuration
+    # Charger la configuration selon l'environnement spécifié
     try:
-        settings = get_settings()
+        # Déterminer le fichier .env à utiliser
+        agent_dir = Path(__file__).parent.parent
+        if args.env == "local":
+            env_file = agent_dir / ".env.local"
+            if not env_file.exists():
+                env_file = agent_dir / ".env"  # Fallback sur .env si .env.local n'existe pas
+        else:
+            env_file = agent_dir / ".env"
+        
+        # Charger les variables depuis le fichier spécifié
+        # Charger manuellement le fichier .env et mettre dans os.environ
+        if env_file.exists():
+            env_values = dotenv_values(str(env_file))
+            # Écraser les variables d'environnement avec celles du fichier spécifié
+            # pour garantir qu'on utilise bien le bon environnement
+            for key, value in env_values.items():
+                os.environ[key] = value
+        
+        # Créer l'instance Settings (elle utilisera les variables d'environnement)
+        settings = Settings()
+        
+        # Afficher l'environnement utilisé
+        print(f"🔧 Environnement: {args.env} (fichier: {env_file.name})")
+        if env_file.exists():
+            print(f"📍 Qdrant URL: {settings.qdrant_url}\n")
+        else:
+            print(f"⚠️  Fichier {env_file.name} non trouvé, utilisation des variables d'environnement système\n")
+        
     except Exception as e:
         print(f"❌ Erreur de configuration: {e}")
-        print("💡 Assurez-vous que les variables d'environnement sont définies dans .env")
+        print(f"💡 Assurez-vous que les variables d'environnement sont définies dans .env.local ou .env")
         sys.exit(1)
     
-    # Créer le client Qdrant
+    # Créer le client Qdrant avec les settings chargés
     try:
-        client = get_qdrant_client()
+        # Créer le client manuellement avec les settings chargés
+        from qdrant_client import QdrantClient
+        
+        client_kwargs = {"url": settings.qdrant_url}
+        if settings.qdrant_api_key:
+            client_kwargs["api_key"] = settings.qdrant_api_key
+        
+        client = QdrantClient(**client_kwargs)
     except Exception as e:
         print(f"❌ Erreur lors de la création du client Qdrant: {e}")
         sys.exit(1)
     
     # Vérifier la connexion
-    if not check_connection(client):
+    if not check_connection(client, settings.qdrant_url):
         sys.exit(1)
     
     # Si --all, afficher tout
@@ -235,8 +318,10 @@ Exemples:
             print(f"Statut: {info.status.value}")
             print(f"\n💡 Utilisez --help pour plus d'options")
         except Exception as e:
-            print(f"⚠️  Collection '{settings.qdrant_collection_name}' non trouvée: {e}")
-            print(f"💡 Utilisez --collections pour voir les collections disponibles")
+            print(f"⚠️  Collection '{settings.qdrant_collection_name}' non trouvée")
+            print(f"💡 Pour créer et indexer la collection, exécutez:")
+            print(f"   cd agent && just ingest")
+            print(f"💡 Ou utilisez --collections pour voir les collections disponibles")
     
     sys.exit(0 if success else 1)
 

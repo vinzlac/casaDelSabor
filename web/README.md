@@ -31,6 +31,19 @@ npm run dev -- --hostname 0.0.0.0
 
 L'application sera accessible sur `http://localhost:3000`
 
+### Vérifier le statut
+
+```bash
+# Vérification complète
+./scripts/front-status.sh
+
+# Options disponibles
+./scripts/front-status.sh --health    # Health check uniquement
+./scripts/front-status.sh --api       # Tester l'API route
+./scripts/front-status.sh --env      # Afficher la configuration
+./scripts/front-status.sh --logs     # Voir les logs
+```
+
 ### Production
 
 ```bash
@@ -71,11 +84,23 @@ web/
 
 Créez un fichier `.env.local` à la racine du dossier `web/` :
 
+```bash
+cd web
+cp .env.local.example .env.local
+```
+
+Le fichier `.env.local.example` contient :
+
 ```env
+# URL de l'agent RAG Python
+# En développement local : http://localhost:8000
+# En production (Vercel) : https://casadelsabor.up.railway.app
 AGENT_URL=http://localhost:8000
 ```
 
-Par défaut, l'application utilise `http://localhost:8000` pour l'agent backend.
+**En développement local** : Utilisez `http://localhost:8000` (valeur par défaut si `.env.local` n'existe pas)
+
+**En production (Vercel)** : Configurez `AGENT_URL` avec l'URL de votre agent Railway (ex: `https://casadelsabor.up.railway.app`)
 
 ### Configuration de l'API
 
@@ -84,6 +109,8 @@ L'URL de l'agent est configurée dans `src/app/api/chat/route.ts` :
 ```typescript
 const AGENT_URL = process.env.AGENT_URL || 'http://localhost:8000';
 ```
+
+Next.js charge automatiquement les variables depuis `.env.local` en développement et depuis les variables d'environnement Vercel en production.
 
 ## 🎨 Fonctionnalités
 
@@ -108,7 +135,8 @@ Oui, il est tout à fait possible de déployer uniquement le sous-répertoire `w
    - Sélectionner `web` comme répertoire racine
    - Cliquer sur **Save**
 3. Aller dans **Settings** → **Environment Variables**
-   - Ajouter la variable `AGENT_URL` avec l'URL de votre agent déployé (ex: `https://votre-agent.herokuapp.com`)
+   - Ajouter la variable `AGENT_URL` avec l'URL de votre agent Railway (ex: `https://casadelsabor.up.railway.app`)
+   - Sélectionner les environnements (Production, Preview, Development)
 4. Déployer (automatique lors du push ou via le dashboard)
 
 #### Méthode 2 : Via le CLI Vercel
@@ -124,7 +152,12 @@ Ou depuis la racine du repo :
 vercel --cwd web
 ```
 
-Puis ajouter la variable d'environnement `AGENT_URL` via l'interface ou le CLI.
+Puis ajouter la variable d'environnement `AGENT_URL` via l'interface ou le CLI :
+
+```bash
+vercel env add AGENT_URL
+# Entrer: https://casadelsabor.up.railway.app
+```
 
 ### Autres plateformes
 

@@ -41,6 +41,7 @@ just install
 
 ### 3. Configurer les variables d'environnement
 
+**Pour la production (Qdrant Cloud) :**
 ```bash
 cp .env.example .env
 ```
@@ -51,7 +52,24 @@ Puis éditer `.env` avec vos clés API :
 MISTRAL_API_KEY=votre_cle_mistral
 QDRANT_URL=https://votre-cluster.qdrant.io
 QDRANT_API_KEY=votre_cle_qdrant
+API_KEY=votre_cle_api_secrete
 ```
+
+**Pour le développement local (Qdrant Docker) :**
+```bash
+cp .env.local.example .env.local
+```
+
+Puis éditer `.env.local` :
+
+```env
+MISTRAL_API_KEY=votre_cle_mistral
+QDRANT_URL=http://localhost:6333
+QDRANT_API_KEY=
+API_KEY=dev-api-key-12345
+```
+
+**Note** : L'application charge automatiquement `.env.local` en priorité s'il existe, sinon `.env`. Plus besoin d'exporter manuellement les variables !
 
 ## 🎯 Utilisation
 
@@ -65,6 +83,9 @@ just run        # Lance en mode production
 just ingest     # Indexe les documents
 just reindex    # Force la réindexation
 just status     # Vérifie le statut
+just health     # Health check simple
+just agent-status      # Statut détaillé via script
+just agent-health      # Health check uniquement
 just chat "Quels sont vos horaires ?"  # Test une question
 ```
 
@@ -80,12 +101,13 @@ Le serveur démarre sur `http://localhost:8000`.
 
 ### Endpoints disponibles
 
-| Endpoint | Méthode | Description |
-|----------|---------|-------------|
-| `/health` | GET | Health check |
-| `/status` | GET | Statut détaillé de l'agent |
-| `/ingest` | POST | Indexer les documents dans Qdrant |
-| `/chat` | POST | Poser une question au chatbot |
+| Endpoint | Méthode | Description | Sécurité |
+|----------|---------|-------------|----------|
+| `/health` | GET | Health check | Public |
+| `/status` | GET | Statut détaillé de l'agent | API KEY |
+| `/ingest` | POST | Indexer les documents dans Qdrant | API KEY |
+| `/upload` | POST | Uploader un document markdown | API KEY |
+| `/chat` | POST | Poser une question au chatbot | Public |
 
 ### Indexer les documents
 
@@ -142,14 +164,15 @@ Variables d'environnement disponibles :
 | `MISTRAL_API_KEY` | Clé API Mistral | (requis) |
 | `MISTRAL_MODEL` | Modèle LLM | `mistral-small-latest` |
 | `MISTRAL_EMBEDDING_MODEL` | Modèle embeddings | `mistral-embed` |
-| `QDRANT_URL` | URL Qdrant Cloud | (requis) |
-| `QDRANT_API_KEY` | Clé API Qdrant | (requis) |
+| `QDRANT_URL` | URL Qdrant Cloud ou Local | (requis) |
+| `QDRANT_API_KEY` | Clé API Qdrant | (optionnel, vide pour Qdrant local) |
 | `QDRANT_COLLECTION_NAME` | Nom de la collection | `casa_del_sabor` |
 | `AGENT_HOST` | Host du serveur | `0.0.0.0` |
 | `AGENT_PORT` | Port du serveur | `8000` |
 | `CHUNK_SIZE` | Taille des chunks | `500` |
 | `CHUNK_OVERLAP` | Overlap des chunks | `50` |
 | `TOP_K_RESULTS` | Nombre de résultats RAG | `4` |
+| `API_KEY` | Clé API pour sécuriser les endpoints admin | (optionnel) |
 
 ## 🚢 Déploiement
 
@@ -168,6 +191,7 @@ Railway supporte le déploiement depuis un sous-répertoire. Deux méthodes sont
    - `MISTRAL_API_KEY` (requis)
    - `QDRANT_URL` (requis)
    - `QDRANT_API_KEY` (requis)
+   - `API_KEY` (recommandé pour sécuriser les endpoints)
    - `QDRANT_COLLECTION_NAME` (optionnel, défaut: `casa_del_sabor`)
    - `MISTRAL_MODEL` (optionnel, défaut: `mistral-small-latest`)
    - `MISTRAL_EMBEDDING_MODEL` (optionnel, défaut: `mistral-embed`)
@@ -210,6 +234,7 @@ Un fichier `railway.json` et un `Dockerfile` ont été créés à la racine du p
    - `MISTRAL_API_KEY` (requis)
    - `QDRANT_URL` (requis)
    - `QDRANT_API_KEY` (requis)
+   - `API_KEY` (recommandé pour sécuriser les endpoints)
    - `QDRANT_COLLECTION_NAME` (optionnel, défaut: `casa_del_sabor`)
    - `MISTRAL_MODEL` (optionnel, défaut: `mistral-small-latest`)
    - `MISTRAL_EMBEDDING_MODEL` (optionnel, défaut: `mistral-embed`)
@@ -218,9 +243,10 @@ Un fichier `railway.json` et un `Dockerfile` ont été créés à la racine du p
    - Railway déploiera automatiquement à chaque push sur la branche connectée
    - Vous pouvez voir les logs en temps réel dans l'interface Railway
 
-**Note** : Après le déploiement, n'oubliez pas d'appeler l'endpoint `/ingest` pour indexer les documents :
+**Note** : Après le déploiement, n'oubliez pas d'appeler l'endpoint `/ingest` pour indexer les documents (avec API KEY si configurée) :
 ```bash
-curl -X POST https://votre-app.up.railway.app/ingest
+curl -X POST https://votre-app.up.railway.app/ingest \
+  -H "X-API-Key: votre_cle_api_secrete"
 ```
 
 **Avantages de cette méthode** :
@@ -257,12 +283,149 @@ Les deux clients utilisent le même endpoint `/chat` avec le format :
 }
 ```
 
+## 🔒 Sécurisation de l'API
+
+Les endpoints sensibles (`/ingest`, `/status`, `/upload`) sont protégés par authentification API KEY.
+
+### Configuration
+
+Ajoutez `API_KEY` dans votre fichier `.env` :
+
+```env
+API_KEY=votre_cle_api_secrete
+```
+
+**Note** : Si `API_KEY` n'est pas définie, les endpoints restent publics (rétrocompatibilité).
+
+### Utilisation des endpoints protégés
+
+Tous les endpoints protégés nécessitent le header `X-API-Key` :
+
+```bash
+# Ingestion (avec API KEY)
+curl -X POST http://localhost:8000/ingest \
+  -H "X-API-Key: votre_cle_api_secrete" \
+  -H "Content-Type: application/json" \
+  -d '{"force_reindex": true}'
+
+# Statut (avec API KEY)
+curl -X GET http://localhost:8000/status \
+  -H "X-API-Key: votre_cle_api_secrete"
+
+# Upload d'un document (avec API KEY)
+curl -X POST http://localhost:8000/upload \
+  -H "X-API-Key: votre_cle_api_secrete" \
+  -F "file=@nouveau_menu.md"
+```
+
+### Endpoint `/upload`
+
+Permet d'uploader dynamiquement de nouveaux documents markdown :
+
+```bash
+curl -X POST http://localhost:8000/upload \
+  -H "X-API-Key: votre_cle_api_secrete" \
+  -F "file=@nouveau_document.md"
+```
+
+Le fichier sera sauvegardé dans `agent/documents/`. Appelez ensuite `/ingest` pour l'indexer.
+
+## 🧪 Développement Local avec Qdrant Docker
+
+Pour tester en local sans utiliser Qdrant Cloud :
+
+### 1. Démarrer Qdrant local
+
+```bash
+# Depuis la racine du projet
+docker-compose up -d qdrant
+
+# Ou avec just (depuis agent/)
+just qdrant-up
+```
+
+### 2. Configurer l'environnement local
+
+Créez un fichier `agent/.env.local` :
+
+```bash
+cp agent/.env.local.example agent/.env.local
+```
+
+Puis modifiez `agent/.env.local` :
+
+```env
+# Qdrant Local (sans API KEY)
+QDRANT_URL=http://localhost:6333
+QDRANT_API_KEY=
+
+# Mistral AI (utilisez votre vraie clé)
+MISTRAL_API_KEY=votre_cle_mistral
+
+# API Security (optionnel pour le dev)
+API_KEY=dev-api-key-12345
+```
+
+### 3. Démarrer l'agent
+
+```bash
+cd agent
+just dev
+```
+
+**Note** : Le fichier `.env.local` est chargé automatiquement par l'application Python (via `pydantic-settings`). Plus besoin d'exporter manuellement les variables !
+
+### 4. Indexer les documents
+
+Dans un autre terminal :
+
+```bash
+cd agent
+just ingest
+```
+
+### Commandes Qdrant disponibles
+
+```bash
+just qdrant-up      # Démarrer Qdrant
+just qdrant-down    # Arrêter Qdrant
+just qdrant-logs    # Voir les logs
+just qdrant-status  # Vérifier le statut
+just qdrant-clean   # Supprimer toutes les données
+```
+
+### Script de démarrage rapide
+
+Utilisez le script `dev-local.sh` pour tout configurer automatiquement :
+
+```bash
+./agent/scripts/dev-local.sh
+```
+
+Ce script :
+- Vérifie que Docker est en cours d'exécution
+- Démarre Qdrant
+- Attend que Qdrant soit prêt
+- Crée `.env.local` si nécessaire
+- Affiche les instructions
+
+### Dashboard Qdrant
+
+Accédez au dashboard sur : http://localhost:6333/dashboard
+
 ## 📝 Ajouter des documents
 
 Pour ajouter de nouvelles informations au chatbot :
 
+### Méthode 1 : Fichier manuel
+
 1. Créer/modifier un fichier `.md` dans `documents/`
-2. Appeler l'endpoint `/ingest` avec `force_reindex: true`
+2. Appeler l'endpoint `/ingest` avec `force_reindex: true` (avec API KEY)
+
+### Méthode 2 : Upload via API
+
+1. Uploader le fichier via `/upload` (avec API KEY)
+2. Appeler l'endpoint `/ingest` pour indexer (avec API KEY)
 
 Les documents sont automatiquement découpés et indexés dans Qdrant.
 
@@ -273,20 +436,57 @@ Deux scripts sont disponibles pour vérifier le statut du cluster Qdrant en lign
 ### Script Python (recommandé)
 
 ```bash
-# Statut de base
+# Statut de base (utilise .env.local par défaut)
 python agent/scripts/qdrant_status.py
+
+# Utiliser un environnement spécifique
+python agent/scripts/qdrant_status.py --env local    # Utilise .env.local
+python agent/scripts/qdrant_status.py --env prod    # Utilise .env
 
 # Lister toutes les collections
 python agent/scripts/qdrant_status.py --collections
+python agent/scripts/qdrant_status.py --env prod --collections
 
 # Détails d'une collection spécifique
 python agent/scripts/qdrant_status.py --collection casa_del_sabor
+python agent/scripts/qdrant_status.py --env prod --collection casa_del_sabor
 
 # Statut du cluster
 python agent/scripts/qdrant_status.py --cluster
 
 # Tout afficher
 python agent/scripts/qdrant_status.py --all
+python agent/scripts/qdrant_status.py --env prod --all
+```
+
+### Via just (commandes simplifiées)
+
+```bash
+# Statut détaillé (local par défaut)
+just qdrant-info
+just qdrant-info local
+just qdrant-info prod
+
+# Tout afficher
+just qdrant-info-all
+just qdrant-info-all prod
+
+# Collections
+just qdrant-collections
+just qdrant-collections prod
+
+# Détails d'une collection
+just qdrant-collection casa_del_sabor
+just qdrant-collection casa_del_sabor prod
+```
+
+### Via wrapper shell
+
+```bash
+# Utiliser le wrapper shell
+./agent/scripts/qdrant-status.sh                    # Local (défaut)
+./agent/scripts/qdrant-status.sh local --all        # Local avec toutes les infos
+./agent/scripts/qdrant-status.sh prod --collections # Prod avec collections
 ```
 
 ### Script Shell (curl)

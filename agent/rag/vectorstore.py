@@ -18,10 +18,15 @@ def get_qdrant_client() -> QdrantClient:
     """Retourne une instance singleton du client Qdrant."""
     settings = get_settings()
     
-    return QdrantClient(
-        url=settings.qdrant_url,
-        api_key=settings.qdrant_api_key,
-    )
+    # Si l'API KEY est vide, ne pas l'envoyer (Qdrant local)
+    client_kwargs = {
+        "url": settings.qdrant_url,
+    }
+    
+    if settings.qdrant_api_key:
+        client_kwargs["api_key"] = settings.qdrant_api_key
+    
+    return QdrantClient(**client_kwargs)
 
 
 def init_vectorstore() -> bool:
