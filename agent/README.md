@@ -265,3 +265,44 @@ Pour ajouter de nouvelles informations au chatbot :
 2. Appeler l'endpoint `/ingest` avec `force_reindex: true`
 
 Les documents sont automatiquement découpés et indexés dans Qdrant.
+
+## 🔍 Vérifier le statut de Qdrant (CLI)
+
+Deux scripts sont disponibles pour vérifier le statut du cluster Qdrant en ligne de commande :
+
+### Script Python (recommandé)
+
+```bash
+# Statut de base
+python agent/scripts/qdrant_status.py
+
+# Lister toutes les collections
+python agent/scripts/qdrant_status.py --collections
+
+# Détails d'une collection spécifique
+python agent/scripts/qdrant_status.py --collection casa_del_sabor
+
+# Statut du cluster
+python agent/scripts/qdrant_status.py --cluster
+
+# Tout afficher
+python agent/scripts/qdrant_status.py --all
+```
+
+### Script Shell (curl)
+
+```bash
+# Statut de base
+./agent/scripts/qdrant_curl.sh
+
+# Détails d'une collection
+./agent/scripts/qdrant_curl.sh casa_del_sabor
+
+# Lister les collections
+./agent/scripts/qdrant_curl.sh --collections
+
+# Statut du cluster
+./agent/scripts/qdrant_curl.sh --cluster
+```
+
+**Note** : Les scripts utilisent les variables d'environnement définies dans `.env` (`QDRANT_URL` et `QDRANT_API_KEY`).
