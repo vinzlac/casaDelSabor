@@ -1,0 +1,416 @@
+openapi: 3.0.0
+info:
+  title: Casa del Sabor - Agent RAG API
+  description: |
+    API de l'agent conversationnel RAG pour le restaurant Casa del Sabor.
+    
+    ## Authentification
+    
+    Les endpoints sensibles nécessitent une clé API passée dans le header `X-API-Key`.
+    
+    Endpoints protégés:
+    - `/status`
+    - `/ingest`
+    - `/upload`
+    
+    ## Environnements
+    
+    - **Local**: http://localhost:8000
+    - **Production**: https://casadelsabor.up.railway.app
+    
+  version: 1.0.0
+  contact:
+    name: Casa del Sabor
+    
+servers:
+  - url: https://casadelsabor.up.railway.app
+    description: Production (Railway)
+  - url: http://localhost:8000
+    description: Local
+
+tags:
+  - name: Health
+    description: Endpoints de santé et statut
+  - name: Documents
+    description: Gestion des documents et indexation
+  - name: Chat
+    description: Conversation avec l'agent RAG
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check simple
+      description: Vérifie que le service est en ligne
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service en ligne
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: healthy
+                service: casa-del-sabor-agent
+                version: 1.0.0
+
+  /status:
+    get:
+      tags:
+        - Health
+      summary: Statut détaillé de l'agent
+      description: Retourne des informations détaillées sur l'état de l'agent et des documents
+      operationId: getStatus
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Statut récupéré avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+              example:
+                documents_directory: /app/documents
+                documents_exist: true
+                collection_info:
+                  exists: true
+                  vectors_count: 43
+                  points_count: 43
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /ingest:
+    post:
+      tags:
+        - Documents
+      summary: Indexer les documents
+      description: |
+        Ingère les documents markdown du dossier `documents/` dans le vector store Qdrant.
+        
+        Utilisez `force_reindex: true` pour supprimer la collection existante et réindexer tous les documents.
+      operationId: ingestDocuments
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IngestRequest'
+            examples:
+              normal:
+                summary: Ingestion normale
+                value:
+                  force_reindex: false
+              reindex:
+                summary: Force réindexation
+                value:
+                  force_reindex: true
+      responses:
+        '200':
+          description: Ingestion réussie
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestResponse'
+              example:
+                success: true
+                collection_created: false
+                documents_loaded: 4
+                chunks_indexed: 43
+                force_reindex: false
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: Dossier documents non trouvé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Erreur lors de l'ingestion
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /upload:
+    post:
+      tags:
+        - Documents
+      summary: Upload un document markdown
+      description: |
+        Upload un nouveau document markdown dans le dossier `documents/`.
+        
+        Après l'upload, appelez `/ingest` pour indexer le document.
+      operationId: uploadDocument
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Fichier markdown (.md)
+      responses:
+        '200':
+          description: Document uploadé avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadResponse'
+              example:
+                success: true
+                filename: storytelling.md
+                message: Fichier storytelling.md uploadé avec succès. Appelez /ingest pour l'indexer.
+        '400':
+          description: Fichier invalide (pas un .md)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                detail: Seuls les fichiers .md sont acceptés
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          description: Erreur lors de l'upload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /chat:
+    post:
+      tags:
+        - Chat
+      summary: Conversation avec l'agent
+      description: |
+        Envoie un message à l'agent RAG et reçoit une réponse contextuelle.
+        
+        Utilisez le `session_id` pour maintenir l'historique de conversation.
+        Si aucun `session_id` n'est fourni, l'agent en génère un nouveau.
+      operationId: chat
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatRequest'
+            examples:
+              new_conversation:
+                summary: Nouvelle conversation
+                value:
+                  message: Quels sont vos horaires ?
+                  session_id: null
+              existing_conversation:
+                summary: Conversation existante
+                value:
+                  message: Et pour le dimanche ?
+                  session_id: session-abc-123
+      responses:
+        '200':
+          description: Réponse générée avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatResponse'
+              examples:
+                with_sources:
+                  summary: Réponse avec sources
+                  value:
+                    response: "Nous sommes ouverts du mardi au samedi de 12h à 14h30 pour le déjeuner, et de 19h à 22h30 pour le dîner. Le dimanche, nous sommes ouverts uniquement pour le déjeuner de 12h à 15h."
+                    sources:
+                      - horaires.md
+                    session_id: session-abc-123
+        '400':
+          description: Message vide
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                detail: Le message ne peut pas être vide.
+        '500':
+          description: Erreur lors du traitement
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                detail: Désolé, une erreur s'est produite. Veuillez réessayer.
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Clé API pour l'authentification
+
+  schemas:
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - service
+        - version
+      properties:
+        status:
+          type: string
+          example: healthy
+        service:
+          type: string
+          example: casa-del-sabor-agent
+        version:
+          type: string
+          example: 1.0.0
+
+    StatusResponse:
+      type: object
+      required:
+        - documents_directory
+        - documents_exist
+        - collection_info
+      properties:
+        documents_directory:
+          type: string
+          description: Chemin du dossier des documents
+          example: /app/documents
+        documents_exist:
+          type: boolean
+          description: Indique si des documents .md existent
+          example: true
+        collection_info:
+          type: object
+          description: Informations sur la collection Qdrant
+          properties:
+            exists:
+              type: boolean
+              example: true
+            vectors_count:
+              type: integer
+              example: 43
+            points_count:
+              type: integer
+              example: 43
+
+    IngestRequest:
+      type: object
+      properties:
+        force_reindex:
+          type: boolean
+          default: false
+          description: Si true, supprime et recrée la collection
+
+    IngestResponse:
+      type: object
+      required:
+        - success
+        - collection_created
+        - documents_loaded
+        - chunks_indexed
+        - force_reindex
+      properties:
+        success:
+          type: boolean
+          example: true
+        collection_created:
+          type: boolean
+          description: Indique si la collection a été créée
+          example: false
+        documents_loaded:
+          type: integer
+          description: Nombre de documents chargés
+          example: 4
+        chunks_indexed:
+          type: integer
+          description: Nombre de chunks indexés
+          example: 43
+        force_reindex:
+          type: boolean
+          example: false
+
+    UploadResponse:
+      type: object
+      required:
+        - success
+        - filename
+        - message
+      properties:
+        success:
+          type: boolean
+          example: true
+        filename:
+          type: string
+          example: storytelling.md
+        message:
+          type: string
+          example: Fichier storytelling.md uploadé avec succès. Appelez /ingest pour l'indexer.
+
+    ChatRequest:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: Message de l'utilisateur
+          example: Quels sont vos horaires ?
+        session_id:
+          type: string
+          nullable: true
+          description: ID de session pour maintenir l'historique
+          example: session-abc-123
+
+    ChatResponse:
+      type: object
+      required:
+        - response
+      properties:
+        response:
+          type: string
+          description: Réponse générée par l'agent
+          example: Nous sommes ouverts du mardi au samedi...
+        sources:
+          type: array
+          items:
+            type: string
+          description: Sources utilisées pour générer la réponse
+          example:
+            - horaires.md
+            - info.md
+        session_id:
+          type: string
+          nullable: true
+          description: ID de session à réutiliser pour les prochains messages
+          example: session-abc-123
+
+    ErrorResponse:
+      type: object
+      required:
+        - detail
+      properties:
+        detail:
+          type: string
+          description: Description de l'erreur
+          example: Une erreur s'est produite
+
+  responses:
+    UnauthorizedError:
+      description: Clé API manquante ou invalide
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            detail: API Key invalide ou manquante

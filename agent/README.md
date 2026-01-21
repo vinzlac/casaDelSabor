@@ -109,6 +109,26 @@ Le serveur démarre sur `http://localhost:8000`.
 | `/upload` | POST | Uploader un document markdown | API KEY |
 | `/chat` | POST | Poser une question au chatbot | Public |
 
+### 📦 Tester l'API avec Postman
+
+Des fichiers sont disponibles pour tester facilement l'API :
+
+- **`openapi.yaml`** : Spécification OpenAPI/Swagger complète
+- **`postman-collection.json`** : Collection Postman prête à l'emploi
+- **`API_TESTING.md`** : Guide détaillé d'utilisation
+
+**Import rapide dans Postman :**
+1. Ouvrir Postman
+2. Import → Sélectionner `postman-collection.json`
+3. Configurer la variable `api_key` dans la collection
+4. Tester ! 🚀
+
+**Documentation interactive (auto-générée par FastAPI) :**
+- Swagger UI : http://localhost:8000/docs (local) ou https://casadelsabor.up.railway.app/docs (prod)
+- ReDoc : http://localhost:8000/redoc (local) ou https://casadelsabor.up.railway.app/redoc (prod)
+
+Voir **[API_TESTING.md](./API_TESTING.md)** pour un guide complet.
+
 ### Indexer les documents
 
 ```bash
@@ -428,6 +448,42 @@ Pour ajouter de nouvelles informations au chatbot :
 2. Appeler l'endpoint `/ingest` pour indexer (avec API KEY)
 
 Les documents sont automatiquement découpés et indexés dans Qdrant.
+
+### Méthode 3 : Scripts d'upload automatisés
+
+Deux scripts sont disponibles pour simplifier l'upload et l'indexation :
+
+#### Script avec lecture automatique de la clé API (recommandé)
+
+```bash
+# Upload en local (lit la clé API depuis .env.local ou .env)
+./agent/scripts/upload.sh chemin/vers/document.md local
+
+# Upload en production
+./agent/scripts/upload.sh chemin/vers/document.md prod
+
+# Exemple concret
+./agent/scripts/upload.sh storytelling.md local
+```
+
+Le script `upload.sh` lit automatiquement la clé API depuis `.env.local` ou `.env`.
+
+#### Script avec paramètres explicites
+
+```bash
+# Upload avec tous les paramètres explicites
+./agent/scripts/upload-document.sh chemin/vers/document.md VOTRE_CLE_API local
+
+# Exemple
+./agent/scripts/upload-document.sh storytelling.md dev-api-key-12345 local
+```
+
+Le script `upload-document.sh` permet de spécifier manuellement la clé API (utile pour CI/CD).
+
+**Les deux scripts effectuent automatiquement :**
+1. ✅ Upload du fichier via `/upload`
+2. ✅ Réindexation de la collection via `/ingest`
+3. ✅ Affichage coloré du statut et des résultats
 
 ## 🔍 Vérifier le statut de Qdrant (CLI)
 

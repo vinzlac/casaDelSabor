@@ -1,0 +1,212 @@
+{
+  "info": {
+    "name": "Casa del Sabor - Agent RAG API",
+    "description": "Collection Postman pour l'API de l'agent conversationnel RAG",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url_local",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "base_url_prod",
+      "value": "https://casadelsabor.up.railway.app",
+      "type": "string"
+    },
+    {
+      "key": "api_key",
+      "value": "VOTRE_CLE_API",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url_prod}}/health",
+              "host": ["{{base_url_prod}}"],
+              "path": ["health"]
+            },
+            "description": "Vérifie que le service est en ligne"
+          },
+          "response": []
+        },
+        {
+          "name": "Status Détaillé",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url_prod}}/status",
+              "host": ["{{base_url_prod}}"],
+              "path": ["status"]
+            },
+            "description": "Retourne des informations détaillées sur l'état de l'agent"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Documents",
+      "item": [
+        {
+          "name": "Upload Document",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": [],
+                  "description": "Fichier markdown à uploader"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url_prod}}/upload",
+              "host": ["{{base_url_prod}}"],
+              "path": ["upload"]
+            },
+            "description": "Upload un nouveau document markdown"
+          },
+          "response": []
+        },
+        {
+          "name": "Ingest Documents (Normal)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"force_reindex\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url_prod}}/ingest",
+              "host": ["{{base_url_prod}}"],
+              "path": ["ingest"]
+            },
+            "description": "Indexe les documents sans supprimer la collection existante"
+          },
+          "response": []
+        },
+        {
+          "name": "Ingest Documents (Force Reindex)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"force_reindex\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url_prod}}/ingest",
+              "host": ["{{base_url_prod}}"],
+              "path": ["ingest"]
+            },
+            "description": "Supprime et recrée la collection avant d'indexer"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Chat",
+      "item": [
+        {
+          "name": "Nouvelle Conversation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Quels sont vos horaires ?\",\n  \"session_id\": null\n}"
+            },
+            "url": {
+              "raw": "{{base_url_prod}}/chat",
+              "host": ["{{base_url_prod}}"],
+              "path": ["chat"]
+            },
+            "description": "Démarre une nouvelle conversation avec l'agent"
+          },
+          "response": []
+        },
+        {
+          "name": "Conversation Existante",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Et pour le dimanche ?\",\n  \"session_id\": \"COPIER_SESSION_ID_ICI\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url_prod}}/chat",
+              "host": ["{{base_url_prod}}"],
+              "path": ["chat"]
+            },
+            "description": "Continue une conversation existante (copier le session_id de la réponse précédente)"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

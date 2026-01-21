@@ -1,6 +1,14 @@
 #!/bin/bash
 # Script pour démarrer l'environnement de développement complet
-# Démarre Qdrant, l'agent Python et Next.js
+# Démarre Qdrant, l'agent Python et le frontend choisi
+#
+# Usage:
+#   ./start-dev.sh [frontend]
+#
+# Frontends disponibles:
+#   web-alt  - Frontend Next.js alternatif (défaut)
+#   web      - Frontend Next.js original
+#   mobile   - Application mobile React Native/Expo
 
 set -e
 
@@ -14,10 +22,52 @@ NC='\033[0m' # No Color
 # Répertoires
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 AGENT_DIR="$SCRIPT_DIR/agent"
-WEB_DIR="$SCRIPT_DIR/web"
 PID_DIR="/tmp"
 AGENT_PID_FILE="$PID_DIR/casa-del-sabor-agent.pid"
-WEB_PID_FILE="$PID_DIR/casa-del-sabor-web.pid"
+
+# Déterminer le frontend à utiliser
+FRONTEND="${1:-web-alt}"  # web-alt par défaut
+
+# Validation du frontend
+case "$FRONTEND" in
+    web-alt|web|mobile)
+        ;;
+    *)
+        echo -e "${RED}❌ Frontend invalide: $FRONTEND${NC}"
+        echo -e "${YELLOW}Frontends disponibles:${NC}"
+        echo -e "   ${BLUE}web-alt${NC}  - Frontend Next.js alternatif (défaut)"
+        echo -e "   ${BLUE}web${NC}      - Frontend Next.js original"
+        echo -e "   ${BLUE}mobile${NC}   - Application mobile React Native/Expo"
+        echo ""
+        echo -e "${YELLOW}Usage:${NC} ./start-dev.sh [web-alt|web|mobile]"
+        exit 1
+        ;;
+esac
+
+# Définir les répertoires et ports selon le frontend
+case "$FRONTEND" in
+    web-alt)
+        FRONTEND_DIR="$SCRIPT_DIR/web-alt"
+        FRONTEND_PORT=3001  # web-alt utilise le port 3001
+        FRONTEND_NAME="Next.js (web-alt)"
+        FRONTEND_PID_FILE="$PID_DIR/casa-del-sabor-web-alt.pid"
+        FRONTEND_LOG="/tmp/casa-del-sabor-web-alt.log"
+        ;;
+    web)
+        FRONTEND_DIR="$SCRIPT_DIR/web"
+        FRONTEND_PORT=3000
+        FRONTEND_NAME="Next.js (web)"
+        FRONTEND_PID_FILE="$PID_DIR/casa-del-sabor-web.pid"
+        FRONTEND_LOG="/tmp/casa-del-sabor-web.log"
+        ;;
+    mobile)
+        FRONTEND_DIR="$SCRIPT_DIR/mobile"
+        FRONTEND_PORT=8081  # Port Expo par défaut
+        FRONTEND_NAME="React Native/Expo"
+        FRONTEND_PID_FILE="$PID_DIR/casa-del-sabor-mobile.pid"
+        FRONTEND_LOG="/tmp/casa-del-sabor-mobile.log"
+        ;;
+esac
 
 # Fonction pour nettoyer les processus en cas d'arrêt
 cleanup() {
@@ -33,14 +83,14 @@ cleanup() {
         rm -f "$AGENT_PID_FILE"
     fi
     
-    # Arrêter Next.js
-    if [ -f "$WEB_PID_FILE" ]; then
-        WEB_PID=$(cat "$WEB_PID_FILE")
-        if ps -p "$WEB_PID" > /dev/null 2>&1; then
-            echo "   Arrêt de Next.js (PID: $WEB_PID)"
-            kill "$WEB_PID" 2>/dev/null || true
+    # Arrêter le frontend
+    if [ -f "$FRONTEND_PID_FILE" ]; then
+        FRONTEND_PID=$(cat "$FRONTEND_PID_FILE")
+        if ps -p "$FRONTEND_PID" > /dev/null 2>&1; then
+            echo "   Arrêt de $FRONTEND_NAME (PID: $FRONTEND_PID)"
+            kill "$FRONTEND_PID" 2>/dev/null || true
         fi
-        rm -f "$WEB_PID_FILE"
+        rm -f "$FRONTEND_PID_FILE"
     fi
     
     # Arrêter Qdrant
@@ -55,7 +105,8 @@ cleanup() {
 # Capturer Ctrl+C
 trap cleanup SIGINT SIGTERM
 
-echo -e "${BLUE}🚀 Démarrage de l'environnement de développement Casa del Sabor...${NC}\n"
+echo -e "${BLUE}🚀 Démarrage de l'environnement de développement Casa del Sabor...${NC}"
+echo -e "${BLUE}📱 Frontend sélectionné: ${GREEN}$FRONTEND_NAME${NC} ($FRONTEND)\n"
 
 # Vérifications préalables
 echo -e "${BLUE}📋 Vérification des prérequis...${NC}"
@@ -91,9 +142,9 @@ if [ "$1" == "--check-deps" ]; then
         echo -e "${YELLOW}   Lancez: cd agent && just install${NC}"
     fi
     
-    if [ ! -d "$WEB_DIR/node_modules" ]; then
-        echo -e "${YELLOW}   ⚠️  Dépendances Next.js non installées${NC}"
-        echo -e "${YELLOW}   Lancez: cd web && npm install${NC}"
+    if [ ! -d "$FRONTEND_DIR/node_modules" ]; then
+        echo -e "${YELLOW}   ⚠️  Dépendances $FRONTEND_NAME non installées${NC}"
+        echo -e "${YELLOW}   Lancez: cd $FRONTEND_DIR && npm install${NC}"
     fi
 fi
 
@@ -186,46 +237,63 @@ if [ -f "$AGENT_PID_FILE" ]; then
     fi
 fi
 
-# Démarrage de Next.js
-echo -e "\n${BLUE}⚛️  Démarrage de Next.js...${NC}"
-cd "$WEB_DIR"
+# Démarrage du frontend
+echo -e "\n${BLUE}⚛️  Démarrage de $FRONTEND_NAME...${NC}"
+cd "$FRONTEND_DIR"
 
-# Vérifier si Next.js est déjà en cours d'exécution
-if [ -f "$WEB_PID_FILE" ]; then
-    OLD_PID=$(cat "$WEB_PID_FILE")
+# Vérifier si le frontend est déjà en cours d'exécution
+if [ -f "$FRONTEND_PID_FILE" ]; then
+    OLD_PID=$(cat "$FRONTEND_PID_FILE")
     if ps -p "$OLD_PID" > /dev/null 2>&1; then
-        echo -e "${YELLOW}   ⚠️  Next.js est déjà en cours d'exécution (PID: $OLD_PID)${NC}"
+        echo -e "${YELLOW}   ⚠️  $FRONTEND_NAME est déjà en cours d'exécution (PID: $OLD_PID)${NC}"
         echo -e "${YELLOW}   Utilisez ./stop-dev.sh pour l'arrêter d'abord${NC}"
     else
-        rm -f "$WEB_PID_FILE"
+        rm -f "$FRONTEND_PID_FILE"
     fi
 fi
 
-if [ ! -f "$WEB_PID_FILE" ]; then
-    npm run dev > /tmp/casa-del-sabor-web.log 2>&1 &
-    WEB_PID=$!
-    echo "$WEB_PID" > "$WEB_PID_FILE"
-    echo -e "${GREEN}   ✅ Next.js démarré (PID: $WEB_PID)${NC}"
-    echo -e "${BLUE}   📝 Logs: tail -f /tmp/casa-del-sabor-web.log${NC}"
-fi
-
-# Attendre que Next.js soit prêt
-echo -e "${BLUE}⏳ Attente que Next.js soit prêt...${NC}"
-timeout=15
-counter=0
-while ! curl -s http://localhost:3000 > /dev/null 2>&1; do
-    if [ $counter -ge $timeout ]; then
-        echo -e "${YELLOW}   ⚠️  Next.js n'est pas encore prêt après ${timeout}s${NC}"
-        echo -e "${YELLOW}   Vérifiez les logs: tail -f /tmp/casa-del-sabor-web.log${NC}"
-        break
-    fi
-    sleep 1
-    counter=$((counter + 1))
-    echo -n "."
-done
-if curl -s http://localhost:3000 > /dev/null 2>&1; then
-    echo ""
-    echo -e "${GREEN}   ✅ Next.js est prêt!${NC}"
+if [ ! -f "$FRONTEND_PID_FILE" ]; then
+    case "$FRONTEND" in
+        web-alt|web)
+            npm run dev > "$FRONTEND_LOG" 2>&1 &
+            FRONTEND_PID=$!
+            echo "$FRONTEND_PID" > "$FRONTEND_PID_FILE"
+            echo -e "${GREEN}   ✅ $FRONTEND_NAME démarré (PID: $FRONTEND_PID)${NC}"
+            echo -e "${BLUE}   📝 Logs: tail -f $FRONTEND_LOG${NC}"
+            
+            # Attendre que Next.js soit prêt
+            echo -e "${BLUE}⏳ Attente que $FRONTEND_NAME soit prêt...${NC}"
+            timeout=15
+            counter=0
+            while ! curl -s http://localhost:$FRONTEND_PORT > /dev/null 2>&1; do
+                if [ $counter -ge $timeout ]; then
+                    echo -e "${YELLOW}   ⚠️  $FRONTEND_NAME n'est pas encore prêt après ${timeout}s${NC}"
+                    echo -e "${YELLOW}   Vérifiez les logs: tail -f $FRONTEND_LOG${NC}"
+                    break
+                fi
+                sleep 1
+                counter=$((counter + 1))
+                echo -n "."
+            done
+            if curl -s http://localhost:$FRONTEND_PORT > /dev/null 2>&1; then
+                echo ""
+                echo -e "${GREEN}   ✅ $FRONTEND_NAME est prêt!${NC}"
+            fi
+            ;;
+        mobile)
+            # Pour Expo, on utilise npm start qui ouvre le menu interactif
+            npm start > "$FRONTEND_LOG" 2>&1 &
+            FRONTEND_PID=$!
+            echo "$FRONTEND_PID" > "$FRONTEND_PID_FILE"
+            echo -e "${GREEN}   ✅ $FRONTEND_NAME démarré (PID: $FRONTEND_PID)${NC}"
+            echo -e "${BLUE}   📝 Logs: tail -f $FRONTEND_LOG${NC}"
+            echo -e "${YELLOW}   💡 Expo va ouvrir un menu interactif.${NC}"
+            echo -e "${YELLOW}   💡 Appuyez sur 'i' pour iOS, 'a' pour Android, ou scannez le QR code.${NC}"
+            # Pas de health check pour mobile car Expo utilise un port différent
+            sleep 3
+            echo -e "${GREEN}   ✅ Expo est en cours de démarrage!${NC}"
+            ;;
+    esac
 fi
 
 # Résumé
@@ -238,11 +306,18 @@ echo -e "${BLUE}📍 URLs des services:${NC}"
 echo -e "   • Qdrant Dashboard: ${GREEN}http://localhost:6333/dashboard${NC}"
 echo -e "   • Agent API:        ${GREEN}http://localhost:8000${NC}"
 echo -e "   • Agent Health:     ${GREEN}http://localhost:8000/health${NC}"
-echo -e "   • Next.js App:      ${GREEN}http://localhost:3000${NC}"
+case "$FRONTEND" in
+    web-alt|web)
+        echo -e "   • $FRONTEND_NAME:    ${GREEN}http://localhost:$FRONTEND_PORT${NC}"
+        ;;
+    mobile)
+        echo -e "   • $FRONTEND_NAME:    ${GREEN}Voir le terminal Expo pour les options${NC}"
+        ;;
+esac
 echo ""
 echo -e "${BLUE}📝 Logs:${NC}"
-echo -e "   • Agent:  ${YELLOW}tail -f /tmp/casa-del-sabor-agent.log${NC}"
-echo -e "   • Next.js: ${YELLOW}tail -f /tmp/casa-del-sabor-web.log${NC}"
+echo -e "   • Agent:   ${YELLOW}tail -f /tmp/casa-del-sabor-agent.log${NC}"
+echo -e "   • Frontend: ${YELLOW}tail -f $FRONTEND_LOG${NC}"
 echo ""
 echo -e "${BLUE}🛑 Pour arrêter tous les services:${NC}"
 echo -e "   ${YELLOW}./stop-dev.sh${NC}"

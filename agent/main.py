@@ -6,7 +6,7 @@ import shutil
 
 from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from config import get_settings
 from rag import ingest_documents, ask_question, get_vectorstore
@@ -18,8 +18,15 @@ from security import verify_api_key
 # Modèles Pydantic pour les requêtes/réponses
 class ChatRequest(BaseModel):
     """Requête de chat."""
-    message: str
-    session_id: str | None = None
+    message: str = Field(
+        description="Message de l'utilisateur à envoyer au chatbot",
+        example="Quels sont vos horaires d'ouverture ?"
+    )
+    session_id: str | None = Field(
+        default=None,
+        description="ID de session pour maintenir l'historique de conversation. Si None, une nouvelle session est créée.",
+        example="session-abc-123-xyz"
+    )
 
 
 class ChatResponse(BaseModel):
@@ -31,7 +38,10 @@ class ChatResponse(BaseModel):
 
 class IngestRequest(BaseModel):
     """Requête d'ingestion."""
-    force_reindex: bool = False
+    force_reindex: bool = Field(
+        default=False,
+        description="Si True, supprime et recrée la collection (réindexation complète). Si False, ajoute seulement les nouveaux documents."
+    )
 
 
 class IngestResponse(BaseModel):
@@ -116,13 +126,26 @@ async def get_status():
 @app.post("/ingest", response_model=IngestResponse, dependencies=[Depends(verify_api_key)])
 async def ingest(request: IngestRequest = IngestRequest()):
     """
-    Ingère les documents dans le vector store.
+    Indexe ou réindexe les documents dans le vector store.
+    
+    ## Modes d'utilisation
+    
+    **Indexation normale** (`force_reindex: false`, défaut):
+    - Ajoute les nouveaux documents à la collection existante
+    - Conserve les documents déjà indexés
+    - Plus rapide
+    
+    **Réindexation complète** (`force_reindex: true`):
+    - Supprime la collection existante
+    - Recrée la collection à partir de zéro
+    - Indexe tous les documents du dossier `documents/`
+    - Utile après avoir ajouté/modifié des documents
     
     Args:
-        request: Optionnel, avec force_reindex pour réindexer.
+        request: Configuration avec `force_reindex` (bool, défaut: false)
         
     Returns:
-        Statistiques d'ingestion.
+        Statistiques d'ingestion (nombre de documents, chunks, etc.)
     """
     try:
         result = ingest_documents(force_reindex=request.force_reindex)

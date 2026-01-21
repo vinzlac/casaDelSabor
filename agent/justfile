@@ -49,11 +49,15 @@ ingest:
 reindex:
     ./scripts/reindex.sh {{default_port}}
 
-# Vérifie le statut de l'agent
+# Vérifie si l'agent est en ligne (recommandé)
+check env="local":
+    ./scripts/check-agent.sh {{default_port}} {{env}}
+
+# Vérifie le statut de l'agent (détaillé, nécessite agent en ligne)
 status:
     ./scripts/status.sh {{default_port}}
 
-# Health check
+# Health check simple
 health:
     curl -s http://localhost:{{default_port}}/health | {{python}} -m json.tool --no-ensure-ascii
 
