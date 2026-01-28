@@ -168,3 +168,23 @@ qdrant-collection name env="local":
 qdrant-clean:
     docker-compose -f ../docker-compose.yml down -v
     @echo "⚠️  Toutes les données Qdrant ont été supprimées"
+
+# ============================================
+# 🚀 Railway (Production)
+# ============================================
+
+# Arrêter l'agent en production
+railway-stop:
+    ../scripts/railway-control.sh stop
+
+# Démarrer l'agent en production
+railway-start:
+    ../scripts/railway-control.sh start
+
+# Redémarrer l'agent en production
+railway-restart:
+    ../scripts/railway-control.sh restart
+
+# Statut de l'agent en production
+railway-status:
+    ../scripts/railway-control.sh status
