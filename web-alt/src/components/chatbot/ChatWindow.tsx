@@ -63,6 +63,7 @@ export default function ChatWindow({ onClose }: ChatWindowProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(loadSessionId);
   const [input, setInput] = useState('');
+  const [initialMessageToSend, setInitialMessageToSend] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -76,6 +77,16 @@ export default function ChatWindow({ onClose }: ChatWindowProps) {
 
   useEffect(() => {
     inputRef.current?.focus();
+    
+    // Vérifier s'il y a un message initial à envoyer
+    const initialMessage = localStorage.getItem('chat_initial_message');
+    if (initialMessage) {
+      // Supprimer le message du localStorage
+      localStorage.removeItem('chat_initial_message');
+      
+      // Mettre à jour le state pour déclencher l'envoi
+      setInitialMessageToSend(initialMessage);
+    }
   }, []);
 
   // Sauvegarder l'historique dans localStorage
@@ -102,12 +113,12 @@ export default function ChatWindow({ onClose }: ChatWindowProps) {
     }
   }, [sessionId]);
 
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+  const sendMessage = async (messageContent: string) => {
+    if (!messageContent.trim() || isLoading) return;
 
     const userMessage: Message = {
       id: `user-${Date.now()}`,
-      content: input.trim(),
+      content: messageContent.trim(),
       sender: 'user',
       timestamp: new Date(),
     };
@@ -117,7 +128,7 @@ export default function ChatWindow({ onClose }: ChatWindowProps) {
     setIsLoading(true);
 
     try {
-      const data = await sendChatMessage(input.trim(), sessionId);
+      const data = await sendChatMessage(messageContent.trim(), sessionId);
 
       if (data.sessionId) {
         setSessionId(data.sessionId);
@@ -146,6 +157,10 @@ export default function ChatWindow({ onClose }: ChatWindowProps) {
     }
   };
 
+  const handleSend = async () => {
+    await sendMessage(input);
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -161,6 +176,16 @@ export default function ChatWindow({ onClose }: ChatWindowProps) {
       localStorage.removeItem(SESSION_KEY);
     }
   };
+
+  // Envoyer le message initial si présent
+  useEffect(() => {
+    if (initialMessageToSend && !isLoading) {
+      setTimeout(() => {
+        sendMessage(initialMessageToSend);
+        setInitialMessageToSend(null);
+      }, 500);
+    }
+  }, [initialMessageToSend, isLoading]);
 
   return (
     <Card className="flex flex-col h-full w-full bg-white shadow-2xl border-2 border-primary/20">

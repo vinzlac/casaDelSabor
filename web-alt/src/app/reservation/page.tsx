@@ -1,7 +1,8 @@
 import { Metadata } from 'next';
 import ReservationForm from '@/components/reservation/ReservationForm';
 import { Card, CardContent } from '@/components/ui/card';
-import { Phone, Mail, Calendar } from 'lucide-react';
+import { Phone, Mail, Calendar, MessageCircle } from 'lucide-react';
+import ChatReservationCard from '@/components/reservation/ChatReservationCard';
 
 export const metadata: Metadata = {
   title: 'Réservation - Casa del Sabor',
@@ -19,7 +20,9 @@ export default function ReservationPage() {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <ChatReservationCard />
+
           <Card className="border-2 border-primary/20">
             <CardContent className="p-6 text-center">
               <Phone className="h-8 w-8 text-primary mx-auto mb-2" />
