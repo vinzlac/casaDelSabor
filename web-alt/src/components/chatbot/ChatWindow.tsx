@@ -5,11 +5,14 @@ import { Message } from '@/types/chat';
 import { sendChatMessage } from '@/lib/api';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { X, Send, Loader2 } from 'lucide-react';
+import { X, Send, Loader2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import MarkdownMessage from './MarkdownMessage';
+
+const STORAGE_KEY = 'casadelsabor_chat_history';
+const SESSION_KEY = 'casadelsabor_session_id';
 
 const createInitialMessage = (): Message => ({
   id: 'welcome',
@@ -18,14 +21,47 @@ const createInitialMessage = (): Message => ({
   timestamp: new Date(),
 });
 
+// Charger l'historique depuis localStorage
+const loadChatHistory = (): Message[] => {
+  if (typeof window === 'undefined') return [createInitialMessage()];
+  
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // Convertir les timestamps en objets Date
+      return parsed.map((msg: any) => ({
+        ...msg,
+        timestamp: new Date(msg.timestamp),
+      }));
+    }
+  } catch (error) {
+    console.error('Erreur lors du chargement de l\'historique:', error);
+  }
+  
+  return [createInitialMessage()];
+};
+
+// Charger le sessionId depuis localStorage
+const loadSessionId = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  
+  try {
+    return localStorage.getItem(SESSION_KEY);
+  } catch (error) {
+    console.error('Erreur lors du chargement de la session:', error);
+    return null;
+  }
+};
+
 interface ChatWindowProps {
   onClose: () => void;
 }
 
 export default function ChatWindow({ onClose }: ChatWindowProps) {
-  const [messages, setMessages] = useState<Message[]>([createInitialMessage()]);
+  const [messages, setMessages] = useState<Message[]>(loadChatHistory);
   const [isLoading, setIsLoading] = useState(false);
-  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(loadSessionId);
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -41,6 +77,30 @@ export default function ChatWindow({ onClose }: ChatWindowProps) {
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
+
+  // Sauvegarder l'historique dans localStorage
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde de l\'historique:', error);
+    }
+  }, [messages]);
+
+  // Sauvegarder le sessionId dans localStorage
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    try {
+      if (sessionId) {
+        localStorage.setItem(SESSION_KEY, sessionId);
+      }
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde de la session:', error);
+    }
+  }, [sessionId]);
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -93,6 +153,15 @@ export default function ChatWindow({ onClose }: ChatWindowProps) {
     }
   };
 
+  const handleClearHistory = () => {
+    if (confirm('Voulez-vous vraiment effacer tout l\'historique de conversation ?')) {
+      setMessages([createInitialMessage()]);
+      setSessionId(null);
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(SESSION_KEY);
+    }
+  };
+
   return (
     <Card className="flex flex-col h-full w-full bg-white shadow-2xl border-2 border-primary/20">
       {/* Header */}
@@ -101,14 +170,26 @@ export default function ChatWindow({ onClose }: ChatWindowProps) {
           <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
           <h3 className="font-bold text-lg">Casa del Sabor</h3>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onClose}
-          className="text-white hover:bg-white/20 h-8 w-8"
-        >
-          <X className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleClearHistory}
+            className="text-white hover:bg-white/20 h-8 w-8"
+            title="Effacer l'historique"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="text-white hover:bg-white/20 h-8 w-8"
+            title="Fermer le chat"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       {/* Messages */}

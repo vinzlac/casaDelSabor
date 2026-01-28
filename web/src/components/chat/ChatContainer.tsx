@@ -7,12 +7,48 @@ import ChatInput from './ChatInput';
 import TypingIndicator from './TypingIndicator';
 import { Message } from '@/types/chat';
 
+const STORAGE_KEY = 'casadelsabor_chat_history';
+const SESSION_KEY = 'casadelsabor_session_id';
+
 const createInitialMessage = (): Message => ({
   id: 'welcome',
   content: '¡Hola! 👋 Bienvenue chez Casa del Sabor ! Je suis votre assistant virtuel. Comment puis-je vous aider aujourd\'hui ?',
   sender: 'bot',
   timestamp: new Date(),
 });
+
+// Charger l'historique depuis localStorage
+const loadChatHistory = (): Message[] => {
+  if (typeof window === 'undefined') return [];
+  
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // Convertir les timestamps en objets Date
+      return parsed.map((msg: any) => ({
+        ...msg,
+        timestamp: new Date(msg.timestamp),
+      }));
+    }
+  } catch (error) {
+    console.error('Erreur lors du chargement de l\'historique:', error);
+  }
+  
+  return [createInitialMessage()];
+};
+
+// Charger le sessionId depuis localStorage
+const loadSessionId = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  
+  try {
+    return localStorage.getItem(SESSION_KEY);
+  } catch (error) {
+    console.error('Erreur lors du chargement de la session:', error);
+    return null;
+  }
+};
 
 export default function ChatContainer() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -21,12 +57,23 @@ export default function ChatContainer() {
   // Initialiser le message de bienvenue côté client uniquement
   useEffect(() => {
     if (!isInitialized) {
-      setMessages([createInitialMessage()]);
+      const history = loadChatHistory();
+      setMessages(history);
       setIsInitialized(true);
     }
   }, [isInitialized]);
   const [isLoading, setIsLoading] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  
+  // Charger le sessionId
+  useEffect(() => {
+    if (isInitialized && !sessionId) {
+      const savedSessionId = loadSessionId();
+      if (savedSessionId) {
+        setSessionId(savedSessionId);
+      }
+    }
+  }, [isInitialized, sessionId]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
@@ -37,6 +84,30 @@ export default function ChatContainer() {
   useEffect(() => {
     scrollToBottom();
   }, [messages, isLoading, scrollToBottom]);
+
+  // Sauvegarder l'historique dans localStorage
+  useEffect(() => {
+    if (typeof window === 'undefined' || !isInitialized) return;
+    
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde de l\'historique:', error);
+    }
+  }, [messages, isInitialized]);
+
+  // Sauvegarder le sessionId dans localStorage
+  useEffect(() => {
+    if (typeof window === 'undefined' || !isInitialized) return;
+    
+    try {
+      if (sessionId) {
+        localStorage.setItem(SESSION_KEY, sessionId);
+      }
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde de la session:', error);
+    }
+  }, [sessionId, isInitialized]);
 
   const sendMessage = async (content: string) => {
     // Ajouter le message utilisateur
@@ -98,8 +169,12 @@ export default function ChatContainer() {
 
   // Fonction pour réinitialiser la conversation
   const resetConversation = () => {
-    setMessages([createInitialMessage()]);
-    setSessionId(null);
+    if (confirm('Voulez-vous vraiment effacer tout l\'historique de conversation ?')) {
+      setMessages([createInitialMessage()]);
+      setSessionId(null);
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(SESSION_KEY);
+    }
   };
 
   return (
