@@ -46,7 +46,7 @@ export default function HeroSection() {
             asChild
             size="lg"
             variant="outline"
-            className="border-2 border-white text-white hover:bg-white/10 text-lg px-8 py-6 h-auto"
+            className="border-2 border-white text-white bg-black/30 hover:bg-black/40 backdrop-blur-sm text-lg px-8 py-6 h-auto shadow-lg"
           >
             <Link href="/reservation">
               Réserver une table
