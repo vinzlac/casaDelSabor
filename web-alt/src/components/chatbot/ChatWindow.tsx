@@ -9,6 +9,7 @@ import { X, Send, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
+import MarkdownMessage from './MarkdownMessage';
 
 const createInitialMessage = (): Message => ({
   id: 'welcome',
@@ -126,7 +127,14 @@ export default function ChatWindow({ onClose }: ChatWindowProps) {
                     : 'bg-white text-gray-800 shadow-md border border-gray-200'
                 }`}
               >
-                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                {isUser ? (
+                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                ) : (
+                  <MarkdownMessage 
+                    content={message.content} 
+                    className="text-sm"
+                  />
+                )}
                 <p className="text-xs mt-1 opacity-70">
                   {format(message.timestamp, 'HH:mm', { locale: fr })}
                 </p>

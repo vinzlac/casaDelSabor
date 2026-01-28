@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Check, CheckCheck } from 'lucide-react';
 import { Message } from '@/types/chat';
+import MarkdownMessage from './MarkdownMessage';
 
 interface ChatMessageProps {
   message: Message;
@@ -20,9 +21,13 @@ export default function ChatMessage({ message }: ChatMessageProps) {
         className={`message-bubble ${isUser ? 'message-user' : 'message-bot'}`}
       >
         {/* Contenu du message */}
-        <p className="message-content whitespace-pre-wrap">
-          {message.content}
-        </p>
+        <div className="message-content">
+          {isUser ? (
+            <p className="whitespace-pre-wrap">{message.content}</p>
+          ) : (
+            <MarkdownMessage content={message.content} />
+          )}
+        </div>
         
         {/* Timestamp et statut */}
         <div className={`message-meta ${isUser ? 'text-emerald-100' : 'text-gray-400'}`}>
