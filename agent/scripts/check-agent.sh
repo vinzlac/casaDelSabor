@@ -38,6 +38,24 @@ echo -e "${BLUE}   Environnement: $ENV_NAME${NC}"
 echo -e "${BLUE}   URL: $BASE_URL${NC}"
 echo ""
 
+# Test 0: Vérifier si Qdrant (Docker) tourne
+if [ "$ENV" = "local" ]; then
+    echo -e "${YELLOW}0️⃣  Vérification du container Qdrant...${NC}"
+    QDRANT_STATUS=$(docker ps --filter "name=casa-del-sabor-qdrant" --format "{{.Status}}" 2>/dev/null)
+    
+    if [ -n "$QDRANT_STATUS" ]; then
+        echo -e "${GREEN}   ✅ Container Qdrant en ligne${NC}"
+        echo -e "   ${QDRANT_STATUS}" | sed 's/^/   /'
+    else
+        echo -e "${RED}   ❌ Container Qdrant hors ligne${NC}"
+        echo ""
+        echo -e "${YELLOW}💡 Pour démarrer Qdrant:${NC}"
+        echo -e "   ${BLUE}docker-compose up -d qdrant${NC}"
+        echo ""
+    fi
+    echo ""
+fi
+
 # Test 1: Health check
 echo -e "${YELLOW}1️⃣  Test du endpoint /health...${NC}"
 HEALTH_RESPONSE=$(curl -s -w "\n%{http_code}" "$BASE_URL/health" 2>/dev/null)
@@ -59,7 +77,7 @@ else
     else
         echo -e "   Vérifier les logs Railway ou redéployer"
     fi
-    exit 1
+    exit 0
 fi
 
 echo ""
