@@ -14,6 +14,11 @@ from .memory import add_message, get_chat_history, get_or_create_session
 from .tools import TOOLS, consulter_disponibilites, reserver_table
 from .vectorstore import get_vectorstore
 
+
+class KnowledgeBaseUnavailableError(Exception):
+    """Levée quand la base vectorielle n'est pas prête (ex: collection absente)."""
+
+
 # Prompt système pour l'agent du restaurant
 SYSTEM_PROMPT = """Tu es l'assistant virtuel de Casa del Sabor, un restaurant mexicain authentique situé à Paris.
 
@@ -167,14 +172,22 @@ async def ask_question(question: str, session_id: str | None = None) -> dict:
         search_kwargs={"k": settings.top_k_results},
     )
 
-    source_docs = await retriever.ainvoke(question)
+    try:
+        source_docs = await retriever.ainvoke(question)
+    except Exception as e:
+        lowered = str(e).lower()
+        if "doesn't exist" in lowered or "not found: collection" in lowered:
+            raise KnowledgeBaseUnavailableError(
+                "La collection vectorielle n'est pas encore disponible."
+            ) from e
+        raise
     context = format_docs(source_docs)
 
     add_message(session_id, "user", question)
 
     chain = get_rag_chain(with_history=has_history)
 
-    invoke_params = {
+    invoke_params: dict[str, object] = {
         "context": context,
         "question": question,
     }

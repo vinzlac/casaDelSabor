@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 
 from config import get_settings
 from rag import ingest_documents, ask_question, get_vectorstore
+from rag.chain import KnowledgeBaseUnavailableError
 from rag.ingestion import get_ingestion_status
 from rag.vectorstore import get_collection_info
 from security import verify_api_key
@@ -248,6 +249,17 @@ async def chat(request: ChatRequest):
             response=result["response"],
             sources=result.get("sources", []),
             session_id=result.get("session_id"),
+        )
+    except KnowledgeBaseUnavailableError:
+        # Cas métier attendu: ingestion non faite / collection absente.
+        return ChatResponse(
+            response=(
+                "Je ne peux pas encore répondre à cette question car je n'ai pas tous les "
+                "éléments de connaissance à ma disposition. "
+                "Merci de lancer l'ingestion des documents puis de réessayer."
+            ),
+            sources=[],
+            session_id=request.session_id,
         )
     except BadRequestError as e:
         settings = get_settings()
