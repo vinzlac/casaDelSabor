@@ -2,6 +2,10 @@
 
 Checklist operationnelle pour securiser la mise en production de l'agent RAG.
 
+## Image container (GHCR)
+
+La CI pousse **`latest`**, **`main`** (branche `main`) et **`<sha>`**. Ne pas référencer un tag absent du registry (sinon `ErrImagePull` / Argo **Degraded**).
+
 ## 0) Contexte / prerequis
 
 - [ ] `kubectl` pointe vers le bon cluster (`KUBECONFIG` k3s)

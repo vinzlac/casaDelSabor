@@ -1,4 +1,4 @@
-# Image : tag poussé par la CI (main + SHA). Le job GitOps remplace la ligne image: si configuré.
+# Image : la CI pousse :latest, :<sha> et :main (voir .github/workflows/build-push.yml). Pas de tag implicite « branche » sans workflow.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -20,7 +20,7 @@ spec:
         - name: ghcr-pull
       containers:
         - name: agent
-          image: ghcr.io/vinzlac/casadelsabor:main
+          image: ghcr.io/vinzlac/casadelsabor:latest
           imagePullPolicy: Always
           ports:
             - name: http
