@@ -179,10 +179,10 @@ done
 echo ""
 echo -e "${GREEN}   ✅ Qdrant est prêt!${NC}"
 
-# Vérifier .env.local pour l'agent
-if [ ! -f "$AGENT_DIR/.env.local" ]; then
-    echo -e "${YELLOW}⚠️  .env.local n'existe pas dans agent/${NC}"
-    if [ -f "$AGENT_DIR/.env.local.example" ]; then
+# Vérifier .env.local pour l'agent (racine du dépôt)
+if [ ! -f "$SCRIPT_DIR/.env.local" ]; then
+    echo -e "${YELLOW}⚠️  .env.local n'existe pas à la racine du dépôt${NC}"
+    if [ -f "$SCRIPT_DIR/.env.local.example" ]; then
         echo -e "${YELLOW}   Créez-le depuis .env.local.example${NC}"
     fi
 fi

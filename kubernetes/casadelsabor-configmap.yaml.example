@@ -1,0 +1,15 @@
+# ConfigMap : valeurs non secrètes. Ex. prod : https://llm.code-advisors.site/v1 — homelab : http://llm.homelab/v1
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: casadelsabor-config
+  namespace: default
+data:
+  QDRANT_URL: "http://qdrant.qdrant.svc.cluster.local:6333"
+  QDRANT_COLLECTION_NAME: "casa_del_sabor"
+  LLM_BASE_URL: "https://llm.code-advisors.site/v1"
+  LLM_MODEL: "mistral/mistral-small-latest"
+  EMBEDDING_MODEL: "mistral/mistral-embed"
+  AGENT_HOST: "0.0.0.0"
+  AGENT_PORT: "8000"
+  TOP_K_RESULTS: "4"

@@ -6,20 +6,14 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 AGENT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 PROJECT_ROOT="$(cd "$AGENT_DIR/.." && pwd)"
 
-# Charger les variables d'environnement depuis .env
-# Chercher dans agent/.env d'abord, puis à la racine
-if [ -f "$AGENT_DIR/.env" ]; then
-    export $(grep -v '^#' "$AGENT_DIR/.env" | grep -v '^$' | xargs)
-elif [ -f "$PROJECT_ROOT/.env" ]; then
-    export $(grep -v '^#' "$PROJECT_ROOT/.env" | grep -v '^$' | xargs)
-elif [ -f ".env" ]; then
-    export $(grep -v '^#' .env | grep -v '^$' | xargs)
+# Variables depuis .env.local uniquement (aligné sur l’agent)
+if [ -f "$PROJECT_ROOT/.env.local" ]; then
+    # shellcheck disable=SC2046
+    export $(grep -v '^#' "$PROJECT_ROOT/.env.local" | grep -v '^$' | xargs)
 fi
 
-# Vérifier que les variables sont définies
-if [ -z "$QDRANT_URL" ] || [ -z "$QDRANT_API_KEY" ]; then
-    echo "❌ Erreur: QDRANT_URL et QDRANT_API_KEY doivent être définis"
-    echo "💡 Créez un fichier .env ou exportez ces variables"
+if [ -z "$QDRANT_URL" ]; then
+    echo "❌ Erreur: QDRANT_URL doit être défini (export ou .env.local)"
     exit 1
 fi
 

@@ -1,0 +1,16 @@
+# Uniquement API_KEY (auth /ingest, /status). LLM et Qdrant : casadelsabor-llm / casadelsabor-qdrant.
+# kubeseal : kubectl create secret generic casadelsabor-api --dry-run=client -n casadelsabor \
+#   --from-literal=API_KEY=... -o yaml | kubeseal -o yaml
+---
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  name: casadelsabor-api
+  namespace: casadelsabor
+spec:
+  encryptedData:
+    API_KEY: AgB3Cv5BIH7CbxiVhRJdBQl/RTREpkJHMew/eIelqKoFtIC059dOuMyLu1UFNht8NvgwJ6g3szmnfw6mIFMqhLNzdNAagT4gWjHVWOm7r64b85sekG2yetGiEdRRpK9ovfJlYbw8tSJmD0tzfaDfEqNcjQXIoi9axaB6dZDTUj2BOQchsEnwXuifi/D89OzectSIUCmSzkLiPQm/aaERuDm6BF9ZWpKjIHgXb1FooLLdEYN2Qs951xrGo/0FsBf/nZivBOPGfosPvBkpk7hqUrKysV0rO9jSiKIRagbWfoRbpMZsUmmcLQFOenPPnbZI5YC1gw86dnakV8ozi3LN4hTZO+CDlQw8awH5Vx1B9nGlcvRdzBR6l6BGO1I4u5qAExZ1UUtv0ZPb6xVgtfVE6lOymkNNEN9HQeaJPwsdEQUljGtel+pQtZPLzC2qQgaeXnNKLsCvLbw1yYR9R02L02Xlu7DPkgxgs9ReKfvBrKozCUzx9jdEDYYeTZBLx+DYDmx3prvMKnNPEcnptt07bVmlWoy6PNJCsgWElshnnxIrwNO14M3a5XCMbu42PwLzvZz5xCxVncCyL0N3DuC2zTQ+X4wYrLiFDpNScZWY6icsv4uuv/fF44b4CD8kaKiQfmySXUL/SGFU+nZAhf7Z8+c70qwIThtPz/SoVGZVEkiUPfAR/fO5FYQ81UbMv+QDdFUpO7VLFTvvRNXQRfrlVO4onw==
+  template:
+    metadata:
+      name: casadelsabor-api
+      namespace: casadelsabor

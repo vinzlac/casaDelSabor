@@ -6,6 +6,7 @@
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 AGENT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+PROJECT_ROOT="$(cd "$AGENT_DIR/.." && pwd)"
 
 # Couleurs
 RED='\033[0;31m'
@@ -88,12 +89,10 @@ if [ "$ENV" = "local" ]; then
     
     echo -e "${YELLOW}2️⃣  Test du endpoint /status...${NC}"
     
-    if [ -f .env.local ] && grep -q "^API_KEY=" .env.local 2>/dev/null; then
-        API_KEY=$(grep "^API_KEY=" .env.local | cut -d '=' -f2- | tr -d '"' | tr -d "'")
-    elif [ -f .env ] && grep -q "^API_KEY=" .env 2>/dev/null; then
-        API_KEY=$(grep "^API_KEY=" .env | cut -d '=' -f2- | tr -d '"' | tr -d "'")
+    if [ -f "$PROJECT_ROOT/.env.local" ] && grep -q "^API_KEY=" "$PROJECT_ROOT/.env.local" 2>/dev/null; then
+        API_KEY=$(grep "^API_KEY=" "$PROJECT_ROOT/.env.local" | cut -d '=' -f2- | tr -d '"' | tr -d "'")
     else
-        echo -e "${YELLOW}   ⚠️  API_KEY non trouvée, skip du test /status${NC}"
+        echo -e "${YELLOW}   ⚠️  API_KEY non trouvée dans .env.local, skip du test /status${NC}"
         API_KEY=""
     fi
     

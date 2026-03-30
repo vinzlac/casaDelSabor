@@ -35,9 +35,7 @@ cd ..
 #### Configuration de l'agent
 
 ```bash
-cd agent
-
-# Créer le fichier .env.local depuis l'exemple
+# À la racine du dépôt (pas dans agent/)
 cp .env.local.example .env.local
 
 # Éditer .env.local et ajouter votre clé Mistral AI
@@ -143,8 +141,8 @@ docker-compose -f docker-compose.yml logs -f qdrant
 ```bash
 cd agent
 
-# Vérifier que .env.local existe et est configuré
-cat .env.local
+# Vérifier que .env.local existe (à la racine du dépôt)
+cat ../.env.local
 
 # Démarrer l'agent
 just dev
@@ -282,11 +280,11 @@ cd agent
 # Vérifier les dépendances
 just install
 
-# Vérifier la configuration
-cat .env.local
+# Vérifier la configuration (fichier à la racine du dépôt)
+cat ../.env.local
 
 # Vérifier que la clé Mistral est bien définie
-grep MISTRAL_API_KEY .env.local
+grep MISTRAL_API_KEY ../.env.local
 
 # Voir les logs
 tail -f /tmp/casa-del-sabor-agent.log
@@ -430,7 +428,7 @@ Avant de commencer à développer, vérifiez :
 
 - [ ] Docker Desktop est en cours d'exécution
 - [ ] Les dépendances sont installées (`just install` et `npm install`)
-- [ ] Le fichier `agent/.env.local` existe et contient `MISTRAL_API_KEY`
+- [ ] Le fichier `.env.local` à la racine du dépôt existe et contient `MISTRAL_API_KEY`
 - [ ] Qdrant démarre correctement (`curl http://localhost:6333/health`)
 - [ ] L'agent démarre correctement (`curl http://localhost:8000/health`)
 - [ ] Les documents sont indexés (`just ingest`)

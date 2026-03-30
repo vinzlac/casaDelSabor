@@ -1,9 +1,11 @@
 """Application FastAPI pour l'agent RAG Casa del Sabor."""
 
+import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 import shutil
 
+from openai import BadRequestError
 from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -13,6 +15,30 @@ from rag import ingest_documents, ask_question, get_vectorstore
 from rag.ingestion import get_ingestion_status
 from rag.vectorstore import get_collection_info
 from security import verify_api_key
+
+logger = logging.getLogger(__name__)
+
+
+def _friendly_chat_error_detail(exc: Exception) -> str:
+    """Retourne un message utilisateur lisible pour les erreurs de chat attendues."""
+    raw = str(exc)
+    lowered = raw.lower()
+
+    if "no healthy deployments for this model" in lowered:
+        settings = get_settings()
+        return (
+            "Le modèle LLM configuré n'est pas disponible sur le proxy LiteLLM. "
+            f"Vérifiez `LLM_MODEL` (actuel: `{settings.llm_model}`) avec `GET /v1/models`, "
+            "puis redémarrez l'agent."
+        )
+
+    if "authentication" in lowered or "api key" in lowered:
+        return (
+            "Erreur d'authentification vers le proxy LiteLLM. "
+            "Vérifiez `LLM_API_KEY` (Virtual Key `sk-...`) et `LLM_BASE_URL`."
+        )
+
+    return "Désolé, une erreur s'est produite. Veuillez réessayer."
 
 
 # Modèles Pydantic pour les requêtes/réponses
@@ -223,13 +249,25 @@ async def chat(request: ChatRequest):
             sources=result.get("sources", []),
             session_id=result.get("session_id"),
         )
+    except BadRequestError as e:
+        settings = get_settings()
+        if settings.agent_debug:
+            logger.exception("Erreur chat (BadRequestError)")
+            detail = f"{type(e).__name__}: {e}"
+        else:
+            # Cas attendu (modèle indisponible, payload invalide), log concis sans stacktrace.
+            logger.warning("Erreur chat (BadRequestError): %s", e)
+            detail = _friendly_chat_error_detail(e)
+        raise HTTPException(status_code=400, detail=detail)
     except Exception as e:
-        # Log l'erreur
-        print(f"Erreur chat: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail="Désolé, une erreur s'est produite. Veuillez réessayer.",
-        )
+        settings = get_settings()
+        if settings.agent_debug:
+            logger.exception("Erreur chat")
+            detail = f"{type(e).__name__}: {e}"
+        else:
+            logger.error("Erreur chat: %s", e)
+            detail = _friendly_chat_error_detail(e)
+        raise HTTPException(status_code=500, detail=detail)
 
 
 # Point d'entrée pour uvicorn

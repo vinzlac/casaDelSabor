@@ -9,8 +9,8 @@ show_help() {
     echo "Usage: $0 [ENV] [OPTIONS...]"
     echo ""
     echo "Environnements:"
-    echo "  local  Utilise .env.local (défaut)"
-    echo "  prod   Utilise .env"
+    echo "  local  Charge .env.local via Settings (défaut)"
+    echo "  prod   Variables du shell uniquement (pas de fichier .env)"
     echo ""
     echo "Options supplémentaires (passées à qdrant_status.py):"
     echo "  --collections      Liste toutes les collections"
@@ -22,8 +22,8 @@ show_help() {
     echo "Exemples:"
     echo "  $0                           # Statut local (défaut)"
     echo "  $0 local --all                # Tout afficher depuis .env.local"
-    echo "  $0 prod --collections         # Collections depuis .env"
-    echo "  $0 prod --collection casa_del_sabor  # Détails depuis .env"
+    echo "  $0 prod --collections         # (après export QDRANT_URL, etc.)"
+    echo "  $0 prod --collection casa_del_sabor"
 }
 
 # Vérifier les arguments

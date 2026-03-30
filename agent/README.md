@@ -4,9 +4,8 @@ Agent conversationnel RAG (Retrieval-Augmented Generation) pour le restaurant Ca
 
 ## 🏗️ Architecture
 
-- **LLM** : Mistral AI (mistral-small-latest)
-- **Embeddings** : Mistral Embeddings (mistral-embed)
-- **Vector Store** : Qdrant Cloud
+- **LLM & embeddings** : toujours via **LiteLLM** (API compatible OpenAI) — `LLM_BASE_URL` + noms `provider/modèle`
+- **Vector Store** : Qdrant (cloud ou local)
 - **Framework** : LangChain + FastAPI
 
 ## 📋 Prérequis
@@ -14,8 +13,8 @@ Agent conversationnel RAG (Retrieval-Augmented Generation) pour le restaurant Ca
 - Python 3.11+
 - [uv](https://docs.astral.sh/uv/) (gestionnaire de paquets rapide)
 - [just](https://github.com/casey/just) (command runner)
-- Compte [Mistral AI](https://console.mistral.ai/) (clé API gratuite)
-- Compte [Qdrant Cloud](https://cloud.qdrant.io/) (gratuit jusqu'à 1GB)
+- Clé API auprès de ton fournisseur LLM (ex. [Mistral](https://console.mistral.ai/), ou via [LiteLLM](https://docs.litellm.ai/))
+- [Qdrant Cloud](https://cloud.qdrant.io/) ou Qdrant local (Docker)
 
 ## 🚀 Installation
 
@@ -41,35 +40,22 @@ just install
 
 ### 3. Configurer les variables d'environnement
 
-**Pour la production (Qdrant Cloud) :**
+Tout se passe à la **racine du dépôt** (parent de `agent/`).
+
+| Fichier | Rôle |
+|---------|------|
+| **`.env`** | **Non lu** par l’application. Tu peux le remplir comme **mémoire** des valeurs de prod à recopier dans Railway ou les secrets k8s. Gabarit : `.env.example`. |
+| **`.env.local`** | **Seul fichier chargé** en dev (si présent). Gabarit : `.env.local.example`. Ne pas committer (gitignore). |
+| Railway / k8s | Variables injectées par la plateforme — **aucun** fichier `.env` sur le serveur. |
+
+**Développement local :**
 ```bash
-cp .env.example .env
-```
-
-Puis éditer `.env` avec vos clés API :
-
-```env
-MISTRAL_API_KEY=votre_cle_mistral
-QDRANT_URL=https://votre-cluster.qdrant.io
-QDRANT_API_KEY=votre_cle_qdrant
-API_KEY=votre_cle_api_secrete
-```
-
-**Pour le développement local (Qdrant Docker) :**
-```bash
+cd ..   # racine du dépôt
 cp .env.local.example .env.local
+# Éditer .env.local : LLM_API_KEY, QDRANT_URL, etc.
 ```
 
-Puis éditer `.env.local` :
-
-```env
-MISTRAL_API_KEY=votre_cle_mistral
-QDRANT_URL=http://localhost:6333
-QDRANT_API_KEY=
-API_KEY=dev-api-key-12345
-```
-
-**Note** : L'application charge automatiquement `.env.local` en priorité s'il existe, sinon `.env`. Plus besoin d'exporter manuellement les variables !
+**Mémoire prod (optionnel)** : `cp .env.example .env` puis remplir à la main les mêmes clés dans le dashboard Railway ou tes manifests.
 
 ## 🎯 Utilisation
 
@@ -153,26 +139,32 @@ curl -X POST http://localhost:8000/chat \
 
 ## 📁 Structure
 
+Les fichiers `.md` **indexés par `/ingest`** sont ceux dans **`agent/documents/`**.  
+Les sources « référence » à la racine du dépôt : **`documents/`** (non lus par l’agent tant qu’ils n’y sont pas copiés).
+
 ```
-agent/
-├── main.py              # Application FastAPI
-├── config.py            # Configuration (variables d'env)
-├── pyproject.toml       # Configuration uv et dépendances
-├── justfile            # Commandes just (task runner)
-├── rag/
-│   ├── __init__.py
-│   ├── chain.py         # RAG Chain + Agent LangChain
-│   ├── tools.py         # Outils (réservation, etc.)
-│   ├── memory.py        # Gestion de la mémoire de session
-│   ├── embeddings.py    # Mistral Embeddings
-│   ├── vectorstore.py   # Client Qdrant
-│   └── ingestion.py     # Chargement et indexation documents
-├── documents/           # Documents du restaurant
+casaDelSabor/
+├── documents/           # Référence (menu, horaires, info — hors ingestion par défaut)
 │   ├── menu.md
 │   ├── horaires.md
 │   └── info.md
-└── scripts/
-    └── conversation.py  # Script de conversation interactive
+└── agent/
+    ├── main.py              # Application FastAPI
+    ├── config.py            # Configuration (variables d'env)
+    ├── pyproject.toml       # Configuration uv et dépendances
+    ├── justfile             # Commandes just (task runner)
+    ├── rag/
+    │   ├── __init__.py
+    │   ├── chain.py         # RAG Chain + Agent LangChain
+    │   ├── tools.py         # Outils (réservation, etc.)
+    │   ├── memory.py        # Gestion de la mémoire de session
+    │   ├── embeddings.py    # Embeddings (LiteLLM)
+    │   ├── vectorstore.py   # Client Qdrant
+    │   └── ingestion.py     # Chargement et indexation documents
+    ├── documents/           # Seul dossier lu par l’ingestion RAG
+    │   └── storytelling.md
+    └── scripts/
+        └── conversation.py  # Script de conversation interactive
 ```
 
 ## 🔧 Configuration
@@ -181,9 +173,12 @@ Variables d'environnement disponibles :
 
 | Variable | Description | Défaut |
 |----------|-------------|--------|
-| `MISTRAL_API_KEY` | Clé API Mistral | (requis) |
-| `MISTRAL_MODEL` | Modèle LLM | `mistral-small-latest` |
-| `MISTRAL_EMBEDDING_MODEL` | Modèle embeddings | `mistral-embed` |
+| `LLM_API_KEY` | Clé API LLM (alias : `MISTRAL_API_KEY`) | (requis) |
+| `LLM_BASE_URL` | **Requis.** URL de l’API OpenAI de LiteLLM (ex. `https://litellm…/v1`) | — |
+| `LLM_MODEL` | Modèle chat LiteLLM (alias : `MISTRAL_MODEL`), format `provider/model` | `mistral/mistral-small-latest` |
+| `LLM_TEMPERATURE` | Température génération | `0.7` |
+| `LLM_MAX_TOKENS` | Limite de tokens | `1024` |
+| `EMBEDDING_MODEL` | Embeddings (alias : `MISTRAL_EMBEDDING_MODEL`), même base URL / clé | `mistral/mistral-embed` |
 | `QDRANT_URL` | URL Qdrant Cloud ou Local | (requis) |
 | `QDRANT_API_KEY` | Clé API Qdrant | (optionnel, vide pour Qdrant local) |
 | `QDRANT_COLLECTION_NAME` | Nom de la collection | `casa_del_sabor` |
@@ -207,14 +202,15 @@ Railway supporte le déploiement depuis un sous-répertoire. Deux méthodes sont
 3. Dans les **Settings** du service :
    - **Root Directory** : Définir `/agent`
    - **Start Command** : `uv run uvicorn main:app --host 0.0.0.0 --port $PORT`
-4. Ajouter les variables d'environnement dans **Variables** :
-   - `MISTRAL_API_KEY` (requis)
+4. Ajouter les variables d'environnement dans **Variables** (mêmes noms qu’en k8s ; `LLM_*` ou alias `MISTRAL_*`) :
+   - `LLM_API_KEY` ou `MISTRAL_API_KEY` (requis)
    - `QDRANT_URL` (requis)
    - `QDRANT_API_KEY` (requis)
    - `API_KEY` (recommandé pour sécuriser les endpoints)
    - `QDRANT_COLLECTION_NAME` (optionnel, défaut: `casa_del_sabor`)
-   - `MISTRAL_MODEL` (optionnel, défaut: `mistral-small-latest`)
-   - `MISTRAL_EMBEDDING_MODEL` (optionnel, défaut: `mistral-embed`)
+   - `LLM_MODEL` / `MISTRAL_MODEL` (optionnel)
+   - `LLM_BASE_URL` (requis — LiteLLM)
+   - `EMBEDDING_MODEL` / `MISTRAL_EMBEDDING_MODEL` (optionnel)
 
 Railway détectera automatiquement Python via `pyproject.toml` et installera les dépendances avec `uv`.
 
@@ -251,13 +247,14 @@ Un fichier `railway.json` et un `Dockerfile` ont été créés à la racine du p
 
 5. **Ajouter les variables d'environnement** :
    Dans l'onglet **Variables** du service Railway, ajouter :
-   - `MISTRAL_API_KEY` (requis)
+   - `LLM_API_KEY` ou `MISTRAL_API_KEY` (requis)
    - `QDRANT_URL` (requis)
    - `QDRANT_API_KEY` (requis)
    - `API_KEY` (recommandé pour sécuriser les endpoints)
    - `QDRANT_COLLECTION_NAME` (optionnel, défaut: `casa_del_sabor`)
-   - `MISTRAL_MODEL` (optionnel, défaut: `mistral-small-latest`)
-   - `MISTRAL_EMBEDDING_MODEL` (optionnel, défaut: `mistral-embed`)
+   - `LLM_MODEL` / `MISTRAL_MODEL` (optionnel)
+   - `LLM_BASE_URL` (requis)
+   - `EMBEDDING_MODEL` / `MISTRAL_EMBEDDING_MODEL` (optionnel)
 
 6. **Déploiement automatique** :
    - Railway déploiera automatiquement à chaque push sur la branche connectée
@@ -309,7 +306,7 @@ Les endpoints sensibles (`/ingest`, `/status`, `/upload`) sont protégés par au
 
 ### Configuration
 
-Ajoutez `API_KEY` dans votre fichier `.env` :
+Ajoutez `API_KEY` dans `.env.local` (racine du dépôt) :
 
 ```env
 API_KEY=votre_cle_api_secrete
@@ -366,21 +363,24 @@ just qdrant-up
 
 ### 2. Configurer l'environnement local
 
-Créez un fichier `agent/.env.local` :
+Créez un fichier `.env.local` à la racine du dépôt :
 
 ```bash
-cp agent/.env.local.example agent/.env.local
+cp .env.local.example .env.local
 ```
 
-Puis modifiez `agent/.env.local` :
+Puis modifiez `.env.local` :
 
 ```env
 # Qdrant Local (sans API KEY)
 QDRANT_URL=http://localhost:6333
 QDRANT_API_KEY=
 
-# Mistral AI (utilisez votre vraie clé)
-MISTRAL_API_KEY=votre_cle_mistral
+# LLM via LiteLLM (homelab en local, prod : https://llm.code-advisors.site/v1)
+LLM_BASE_URL=http://llm.homelab/v1
+LLM_API_KEY=votre_cle
+LLM_MODEL=mistral/mistral-small-latest
+EMBEDDING_MODEL=mistral/mistral-embed
 
 # API Security (optionnel pour le dev)
 API_KEY=dev-api-key-12345

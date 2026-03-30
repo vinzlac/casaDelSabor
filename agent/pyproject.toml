@@ -9,7 +9,7 @@ dependencies = [
     "uvicorn[standard]>=0.34.0",
     "python-multipart>=0.0.9",  # Requis pour UploadFile dans FastAPI
     "langchain>=0.3.13",
-    "langchain-mistralai>=0.2.4",
+    "langchain-openai>=0.3.0",
     "langchain-qdrant>=0.2.0",
     "langchain-text-splitters>=0.3.4",
     "langchain-community>=0.3.13",
@@ -42,4 +42,4 @@ ignore = ["E501"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-asyncio_mode = "auto"
+pythonpath = ["."]

@@ -1,0 +1,14 @@
+# Secret dérivé : uniquement LLM_API_KEY. Qdrant / API : casadelsabor-qdrant / casadelsabor-api.
+---
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  name: casadelsabor-llm
+  namespace: casadelsabor
+spec:
+  encryptedData:
+    LLM_API_KEY: AgCKacIiAR6hqg0BHC/osVWw2NmDIANq1T31ulb+u8I3jK/ehvTbqM6a+o5rBb4UDeknB9xh51uarYULGIJe4+mvkfLGQW4rYDLli525j06gVDtN3Y9T6wR0KRHhbeu3MSsoPnq5nqHJFonmpfB1UIf07YRR0X+XZwdxc25U4KUQ0dh1+JLT4MnZMXMIIoEp5LrwQ8+PNobC108OEh+fQz2wvfJw4k2Akk7f/sv9VGcJb+3PHjZScnmwZFrCmJL0v8qjFfzwwZBOQN7YDg5u0rtdtLRD3BYgZWioqKnoKJaWh+nm0q09XaIr46fSB8MWG/kDSWZDzYBUtDdYnAj/ILDA/3211wmgmCY2QIp/3I2IOicVccyfjXPixsUzNcEAtMXXL0nNmi7Jdltz3AG8KgYd04g32NO+Y+qVy/OSARUc1sI3unp9uqW5WK8HzErZLIk2vISqMbKgFREod6Z3Ctatukb0ciKpH4sNxXRC+MmAcioWyknLbftTpBAQOlfQl2IOoyLr9ISg8dUxvg+P6roFa7vvHVjBsFeTv8h/z4SAs5Z4TLXf/FsPkgHr2omBOX0khlLgU8ltnjMjJEDf/DKzYjxBIyVhkOYD54umgyCLA2z7pMGlUq7wguoBaNz/zBjURLNxTKcVG+KpDQF9xGYvfavn9+rRHURJNnVr0PbJSk4bR5/ClIUm5ZbLALrhGX7liaM67pTi47nCq6QoVqRX+uMpwuTUpS3y
+  template:
+    metadata:
+      name: casadelsabor-llm
+      namespace: casadelsabor

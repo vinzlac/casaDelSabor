@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: casadelsabor-agent
+  namespace: default
+  labels:
+    app: casadelsabor-agent
+spec:
+  type: ClusterIP
+  selector:
+    app: casadelsabor-agent
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http

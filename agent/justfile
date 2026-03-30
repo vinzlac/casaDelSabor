@@ -24,7 +24,8 @@ install-dev:
 # 🎯 Développement
 # ============================================
 
-# Lance le serveur en mode développement (accessible sur le réseau local)
+# Lance le serveur en mode développement (accessible sur le réseau local).
+# Config : variables d’environnement + .env.local à la racine du dépôt (voir settings.py).
 dev port=default_port:
     uv run uvicorn main:app --reload --host 0.0.0.0 --port {{port}}
 
@@ -41,7 +42,7 @@ start:
 # ============================================
 
 # Indexe les documents dans Qdrant
-# Note: L'API_KEY est chargée automatiquement depuis .env.local ou .env par l'application
+# Variables : en dev, depuis .env.local à la racine du dépôt uniquement (pas .env)
 ingest:
     ./scripts/ingest.sh {{default_port}}
 
@@ -124,7 +125,7 @@ docker-build:
 
 # Lance le container Docker
 docker-run:
-    docker run -p 8000:8000 --env-file .env casa-del-sabor-agent
+    docker run -p 8000:8000 --env-file ../.env casa-del-sabor-agent
 
 # ============================================
 # 🗄️ Qdrant Local (Docker)

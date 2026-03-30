@@ -1,0 +1,21 @@
+# LLM_BASE_URL = préfixe commun aux routes OpenAI (…/v1/chat/completions, …/v1/embeddings).
+# Prod vérifiée : https://llm.code-advisors.site/v1 + Authorization: Bearer (même clé que LLM_API_KEY).
+# Homelab (LiteLLM k3s) : ex. http://llm.homelab/v1 — même Virtual Key sk-… ; mistral/mistral-embed
+# côté proxy (1024 dims) aligné avec agent/rag/vectorstore.py EMBEDDING_DIMENSION=1024.
+# Avec LiteLLM, LLM_MODEL et EMBEDDING_MODEL utilisent le format provider/modèle.
+# Changement de modèle d’embedding (ex. OpenAI 1536 vs Mistral 1024) ⇒ supprimer la collection Qdrant et ré-ingérer.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: casadelsabor-config
+  namespace: casadelsabor
+data:
+  QDRANT_URL: "http://qdrant.qdrant.svc.cluster.local:6333"
+  QDRANT_COLLECTION_NAME: "casa_del_sabor"
+  LLM_BASE_URL: "https://llm.code-advisors.site/v1"
+  # Vérifier sur le proxy : GET /v1/models — homelab peut exposer p.ex. mistral/mistral-tiny au lieu de mistral-small-latest.
+  LLM_MODEL: "mistral/mistral-small-latest"
+  EMBEDDING_MODEL: "mistral/mistral-embed"
+  AGENT_HOST: "0.0.0.0"
+  AGENT_PORT: "8000"
+  TOP_K_RESULTS: "4"

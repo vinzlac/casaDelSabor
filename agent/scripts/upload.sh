@@ -7,6 +7,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 AGENT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+PROJECT_ROOT="$(cd "$AGENT_DIR/.." && pwd)"
 
 # Couleurs
 RED='\033[0;31m'
@@ -25,7 +26,7 @@ usage() {
     echo "  $0 ../storytelling.md local"
     echo "  $0 /path/to/doc.md prod"
     echo ""
-    echo "Note: La clé API sera lue depuis .env.local ou .env"
+    echo "Note: API_KEY lue depuis .env.local uniquement"
     exit 1
 }
 
@@ -38,18 +39,15 @@ fi
 FILE_PATH="$1"
 ENV="$2"
 
-# Chercher la clé API
+# Chercher la clé API (racine du dépôt)
 cd "$AGENT_DIR"
 
-if [ -f .env.local ] && grep -q "^API_KEY=" .env.local 2>/dev/null; then
-    API_KEY=$(grep "^API_KEY=" .env.local | cut -d '=' -f2- | tr -d '"' | tr -d "'")
+if [ -f "$PROJECT_ROOT/.env.local" ] && grep -q "^API_KEY=" "$PROJECT_ROOT/.env.local" 2>/dev/null; then
+    API_KEY=$(grep "^API_KEY=" "$PROJECT_ROOT/.env.local" | cut -d '=' -f2- | tr -d '"' | tr -d "'")
     echo -e "${YELLOW}🔑 Clé API trouvée dans .env.local${NC}"
-elif [ -f .env ] && grep -q "^API_KEY=" .env 2>/dev/null; then
-    API_KEY=$(grep "^API_KEY=" .env | cut -d '=' -f2- | tr -d '"' | tr -d "'")
-    echo -e "${YELLOW}🔑 Clé API trouvée dans .env${NC}"
 else
-    echo -e "${RED}❌ Erreur: API_KEY non trouvée dans .env.local ou .env${NC}"
-    echo "Ajoutez API_KEY=votre-cle dans l'un de ces fichiers"
+    echo -e "${RED}❌ Erreur: API_KEY non trouvée dans .env.local${NC}"
+    echo "Ajoutez API_KEY dans .env.local à la racine du dépôt"
     exit 1
 fi
 

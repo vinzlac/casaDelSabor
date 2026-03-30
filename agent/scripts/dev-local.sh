@@ -39,17 +39,17 @@ done
 echo ""
 echo "✅ Qdrant est prêt!"
 
-# Vérifier si .env.local existe
-if [ ! -f "$AGENT_DIR/.env.local" ]; then
+# Vérifier si .env.local existe (racine du dépôt)
+if [ ! -f "$PROJECT_ROOT/.env.local" ]; then
     echo "⚠️  .env.local n'existe pas"
-    if [ -f "$AGENT_DIR/.env.local.example" ]; then
+    if [ -f "$PROJECT_ROOT/.env.local.example" ]; then
         echo "📝 Création de .env.local depuis .env.local.example..."
-        cp "$AGENT_DIR/.env.local.example" "$AGENT_DIR/.env.local"
+        cp "$PROJECT_ROOT/.env.local.example" "$PROJECT_ROOT/.env.local"
         echo "✅ Fichier .env.local créé"
-        echo "💡 Modifiez $AGENT_DIR/.env.local avec vos clés API (notamment MISTRAL_API_KEY)"
+        echo "💡 Modifiez $PROJECT_ROOT/.env.local avec vos clés (ex. LLM_API_KEY)"
     else
         echo "⚠️  .env.local.example n'existe pas non plus"
-        echo "💡 Créez manuellement $AGENT_DIR/.env.local avec vos variables d'environnement"
+        echo "💡 Créez manuellement $PROJECT_ROOT/.env.local avec vos variables d'environnement"
     fi
 else
     echo "✅ .env.local existe déjà"

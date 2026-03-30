@@ -3,6 +3,7 @@
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 AGENT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+PROJECT_ROOT="$(cd "$AGENT_DIR/.." && pwd)"
 
 # Configuration par défaut
 AGENT_URL="${AGENT_URL:-http://localhost:8000}"
@@ -75,10 +76,7 @@ check_status() {
     echo -e "${BLUE}📊 Statut détaillé${NC}\n"
     
     # Charger l'API_KEY si disponible
-    ENV_FILE="$AGENT_DIR/.env.local"
-    if [ ! -f "$ENV_FILE" ]; then
-        ENV_FILE="$AGENT_DIR/.env"
-    fi
+    ENV_FILE="$PROJECT_ROOT/.env.local"
     
     API_KEY=""
     if [ -f "$ENV_FILE" ] && grep -q "^API_KEY=" "$ENV_FILE" 2>/dev/null; then

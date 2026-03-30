@@ -18,23 +18,6 @@ from pathlib import Path
 # Ajouter le répertoire parent au path pour importer les modules
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-try:
-    from dotenv import dotenv_values
-except ImportError:
-    # Fallback si python-dotenv n'est pas installé
-    def dotenv_values(file_path):
-        """Simple parser pour les fichiers .env"""
-        values = {}
-        if not Path(file_path).exists():
-            return values
-        with open(file_path, 'r') as f:
-            for line in f:
-                line = line.strip()
-                if line and not line.startswith('#') and '=' in line:
-                    key, value = line.split('=', 1)
-                    values[key.strip()] = value.strip().strip('"').strip("'")
-        return values
-
 from config import Settings
 from rag.vectorstore import get_qdrant_client
 
@@ -190,9 +173,9 @@ Exemples:
   %(prog)s --collection casa_del_sabor  # Détails d'une collection
   %(prog)s --cluster          # Statut du cluster
   %(prog)s --all              # Tout afficher
-  %(prog)s --env local        # Utiliser .env.local (défaut)
-  %(prog)s --env prod         # Utiliser .env (production)
-  %(prog)s --env prod --all   # Tout afficher depuis .env
+  %(prog)s --env local        # Charge .env.local (défaut)
+  %(prog)s --env prod         # Variables du shell uniquement (pas de fichier .env)
+  %(prog)s --env prod --all
         """
     )
     
@@ -231,44 +214,26 @@ Exemples:
         type=str,
         choices=["local", "prod"],
         default="local",
-        help="Environnement à utiliser: 'local' pour .env.local (défaut), 'prod' pour .env"
+        help="local = .env.local via Settings (défaut) ; prod = uniquement variables d'environnement exportées"
     )
     
     args = parser.parse_args()
     
     # Charger la configuration selon l'environnement spécifié
     try:
-        # Déterminer le fichier .env à utiliser
-        agent_dir = Path(__file__).parent.parent
+        repo_root = Path(__file__).resolve().parent.parent.parent
         if args.env == "local":
-            env_file = agent_dir / ".env.local"
-            if not env_file.exists():
-                env_file = agent_dir / ".env"  # Fallback sur .env si .env.local n'existe pas
+            settings = Settings()
+            env_local = repo_root / ".env.local"
+            print(f"🔧 Environnement: local (fichier: {env_local.name}, présent: {env_local.exists()})")
         else:
-            env_file = agent_dir / ".env"
-        
-        # Charger les variables depuis le fichier spécifié
-        # Charger manuellement le fichier .env et mettre dans os.environ
-        if env_file.exists():
-            env_values = dotenv_values(str(env_file))
-            # Écraser les variables d'environnement avec celles du fichier spécifié
-            # pour garantir qu'on utilise bien le bon environnement
-            for key, value in env_values.items():
-                os.environ[key] = value
-        
-        # Créer l'instance Settings (elle utilisera les variables d'environnement)
-        settings = Settings()
-        
-        # Afficher l'environnement utilisé
-        print(f"🔧 Environnement: {args.env} (fichier: {env_file.name})")
-        if env_file.exists():
-            print(f"📍 Qdrant URL: {settings.qdrant_url}\n")
-        else:
-            print(f"⚠️  Fichier {env_file.name} non trouvé, utilisation des variables d'environnement système\n")
-        
+            # Prod : uniquement le shell / CI — ne pas lire .env ni .env.local
+            settings = Settings(_env_file=None)
+            print("🔧 Environnement: prod (variables d'environnement exportées uniquement)")
+        print(f"📍 Qdrant URL: {settings.qdrant_url}\n")
     except Exception as e:
         print(f"❌ Erreur de configuration: {e}")
-        print(f"💡 Assurez-vous que les variables d'environnement sont définies dans .env.local ou .env")
+        print("💡 local : remplir .env.local à la racine du dépôt. prod : exporter QDRANT_URL, etc.")
         sys.exit(1)
     
     # Créer le client Qdrant avec les settings chargés

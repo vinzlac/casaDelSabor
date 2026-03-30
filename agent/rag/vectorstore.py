@@ -9,7 +9,7 @@ from config import get_settings
 from .embeddings import get_embeddings
 
 
-# Dimension des embeddings Mistral
+# Taille des vecteurs pour la collection Qdrant (souvent 1024 pour mistral-embed via LiteLLM ; ajuster si autre modèle)
 EMBEDDING_DIMENSION = 1024
 
 

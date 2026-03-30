@@ -3,6 +3,7 @@
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 AGENT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+PROJECT_ROOT="$(cd "$AGENT_DIR/.." && pwd)"
 
 PORT="${1:-8000}"
 
@@ -47,12 +48,8 @@ fi
 echo -e "${GREEN}✅ Agent en ligne${NC}"
 echo ""
 
-# Déterminer le fichier .env à utiliser
-if [ -f .env.local ] && grep -q "^API_KEY=" .env.local 2>/dev/null; then
-    API_KEY=$(grep "^API_KEY=" .env.local | cut -d '=' -f2- | tr -d '"' | tr -d "'")
-    RESPONSE=$(curl -s "http://localhost:${PORT}/status" -H "X-API-Key: $API_KEY")
-elif [ -f .env ] && grep -q "^API_KEY=" .env 2>/dev/null; then
-    API_KEY=$(grep "^API_KEY=" .env | cut -d '=' -f2- | tr -d '"' | tr -d "'")
+if [ -f "$PROJECT_ROOT/.env.local" ] && grep -q "^API_KEY=" "$PROJECT_ROOT/.env.local" 2>/dev/null; then
+    API_KEY=$(grep "^API_KEY=" "$PROJECT_ROOT/.env.local" | cut -d '=' -f2- | tr -d '"' | tr -d "'")
     RESPONSE=$(curl -s "http://localhost:${PORT}/status" -H "X-API-Key: $API_KEY")
 else
     RESPONSE=$(curl -s "http://localhost:${PORT}/status")
