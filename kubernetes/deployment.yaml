@@ -20,7 +20,7 @@ spec:
         - name: ghcr-pull
       containers:
         - name: agent
-          image: ghcr.io/vinzlac/casadelsabor:latest
+          image: ghcr.io/vinzlac/casadelsabor:cf728439ee38fb1960825214f66e3beeaa5fd464
           imagePullPolicy: Always
           ports:
             - name: http
