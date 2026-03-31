@@ -8,7 +8,7 @@ data:
   QDRANT_URL: "http://qdrant.qdrant.svc.cluster.local:6333"
   QDRANT_COLLECTION_NAME: "casa_del_sabor"
   LLM_BASE_URL: "https://llm.code-advisors.site/v1"
-  LLM_MODEL: "mistral/mistral-small-latest"
+  LLM_MODEL: "mistral/mistral-tiny"
   EMBEDDING_MODEL: "mistral/mistral-embed"
   AGENT_HOST: "0.0.0.0"
   AGENT_PORT: "8000"

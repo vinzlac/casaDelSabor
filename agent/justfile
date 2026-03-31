@@ -78,6 +78,13 @@ agent-status-full:
 chat message:
     ./scripts/chat.sh {{default_port}} "{{message}}"
 
+# Sanity checks HTTP (local ou distant)
+# Exemples:
+#   just sanity
+#   just sanity "http://casadelsabor.homelab"
+sanity base_url="http://localhost:{{default_port}}":
+    ./scripts/sanity-check.sh --base-url "{{base_url}}"
+
 # Conversation interactive avec mémoire
 conversation:
     {{python}} scripts/conversation.py

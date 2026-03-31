@@ -57,7 +57,7 @@ class Settings(BaseSettings):
         ),
     )
     llm_model: str = Field(
-        default="mistral/mistral-small-latest",
+        default="mistral/mistral-tiny",
         validation_alias=AliasChoices("LLM_MODEL", "MISTRAL_MODEL"),
         description="Modèle LiteLLM au format provider/model.",
     )

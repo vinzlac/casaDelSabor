@@ -175,7 +175,7 @@ Variables d'environnement disponibles :
 |----------|-------------|--------|
 | `LLM_API_KEY` | Clé API LLM (alias : `MISTRAL_API_KEY`) | (requis) |
 | `LLM_BASE_URL` | **Requis.** URL de l’API OpenAI de LiteLLM (ex. `https://litellm…/v1`) | — |
-| `LLM_MODEL` | Modèle chat LiteLLM (alias : `MISTRAL_MODEL`), format `provider/model` | `mistral/mistral-small-latest` |
+| `LLM_MODEL` | Modèle chat LiteLLM (alias : `MISTRAL_MODEL`), format `provider/model` | `mistral/mistral-tiny` |
 | `LLM_TEMPERATURE` | Température génération | `0.7` |
 | `LLM_MAX_TOKENS` | Limite de tokens | `1024` |
 | `EMBEDDING_MODEL` | Embeddings (alias : `MISTRAL_EMBEDDING_MODEL`), même base URL / clé | `mistral/mistral-embed` |
@@ -379,7 +379,7 @@ QDRANT_API_KEY=
 # LLM via LiteLLM (homelab en local, prod : https://llm.code-advisors.site/v1)
 LLM_BASE_URL=http://llm.homelab/v1
 LLM_API_KEY=votre_cle
-LLM_MODEL=mistral/mistral-small-latest
+LLM_MODEL=mistral/mistral-tiny
 EMBEDDING_MODEL=mistral/mistral-embed
 
 # API Security (optionnel pour le dev)
