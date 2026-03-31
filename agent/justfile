@@ -81,8 +81,13 @@ chat message:
 # Sanity checks HTTP (local ou distant)
 # Exemples:
 #   just sanity
-#   just sanity "http://casadelsabor.homelab"
-sanity base_url="http://localhost:{{default_port}}":
+#   just sanity prod
+#   just sanity-url "http://casadelsabor.homelab"
+sanity env="local":
+    ./scripts/sanity-check.sh --env "{{env}}"
+
+# Variante: forcer une URL explicite (sans utiliser les fichiers env)
+sanity-url base_url:
     ./scripts/sanity-check.sh --base-url "{{base_url}}"
 
 # Conversation interactive avec mémoire

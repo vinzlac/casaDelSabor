@@ -2,7 +2,8 @@
 # Sanity checks HTTP pour l'agent Casa del Sabor (local ou distant).
 #
 # Usage:
-#   ./scripts/sanity-check.sh
+#   ./scripts/sanity-check.sh                         # --env local (defaut) -> lit ../.env.local
+#   ./scripts/sanity-check.sh --env prod             # lit ../.env
 #   ./scripts/sanity-check.sh --base-url http://casadelsabor.homelab
 #   ./scripts/sanity-check.sh --base-url http://casadelsabor.homelab --api-key "xxx"
 #   ./scripts/sanity-check.sh --skip-chat
@@ -14,17 +15,27 @@
 
 set -euo pipefail
 
-BASE_URL="http://localhost:8000"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+AGENT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+PROJECT_ROOT="$(cd "$AGENT_DIR/.." && pwd)"
+
+ENV_TARGET="local"
+ENV_FILE=""
+BASE_URL=""
 API_KEY=""
 SKIP_CHAT=false
 CHAT_MESSAGE="Ping sanity check: réponds en une phrase."
+BASE_URL_CLI=false
+API_KEY_CLI=false
 
 usage() {
   cat <<'EOF'
 Usage: scripts/sanity-check.sh [options]
 
 Options:
-  --base-url URL     URL de base de l'API (defaut: http://localhost:8000)
+  --env ENV          local|prod (defaut: local)
+  --env-file PATH    Fichier env explicite (override --env)
+  --base-url URL     URL de base de l'API (prioritaire sur variables d'env)
   --api-key KEY      API key pour /status (header X-API-Key)
   --skip-chat        Ne pas tester /chat
   --chat-message TXT Message de test pour /chat
@@ -32,14 +43,42 @@ Options:
 EOF
 }
 
+load_env_file() {
+  local file_path="$1"
+  [[ -f "$file_path" ]] || return 0
+
+  # Charge uniquement les paires KEY=VALUE simples.
+  while IFS= read -r line; do
+    [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+    [[ "$line" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]] || continue
+    local key="${line%%=*}"
+    local val="${line#*=}"
+    val="${val%\"}"
+    val="${val#\"}"
+    val="${val%\'}"
+    val="${val#\'}"
+    export "$key=$val"
+  done < "$file_path"
+}
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --env)
+      ENV_TARGET="${2:-}"
+      shift 2
+      ;;
+    --env-file)
+      ENV_FILE="${2:-}"
+      shift 2
+      ;;
     --base-url)
       BASE_URL="${2:-}"
+      BASE_URL_CLI=true
       shift 2
       ;;
     --api-key)
       API_KEY="${2:-}"
+      API_KEY_CLI=true
       shift 2
       ;;
     --skip-chat)
@@ -61,6 +100,27 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
+
+if [[ -z "$ENV_FILE" ]]; then
+  case "$ENV_TARGET" in
+    local) ENV_FILE="$PROJECT_ROOT/.env.local" ;;
+    prod) ENV_FILE="$PROJECT_ROOT/.env" ;;
+    *)
+      echo "Valeur invalide pour --env: $ENV_TARGET (attendu: local|prod)" >&2
+      exit 1
+      ;;
+  esac
+fi
+
+load_env_file "$ENV_FILE"
+
+# Priorités: CLI > SANITY_* > variables historiques > defaults.
+if [[ "$BASE_URL_CLI" == false ]]; then
+  BASE_URL="${SANITY_BASE_URL:-${BASE_URL:-http://localhost:8000}}"
+fi
+if [[ "$API_KEY_CLI" == false ]]; then
+  API_KEY="${SANITY_API_KEY:-${API_KEY:-}}"
+fi
 
 BASE_URL="${BASE_URL%/}"
 
@@ -102,6 +162,12 @@ request() {
 }
 
 echo "🔎 Sanity checks sur ${BASE_URL}"
+echo "   Environnement: ${ENV_TARGET}"
+if [[ -f "$ENV_FILE" ]]; then
+  echo "   Fichier env: ${ENV_FILE}"
+else
+  echo "   Fichier env: (absent) ${ENV_FILE}"
+fi
 echo
 
 TMP_HEALTH="$(mktemp)"
