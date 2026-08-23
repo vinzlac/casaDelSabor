@@ -1,0 +1,19 @@
+apiVersion: http.keda.sh/v1alpha1
+kind: HTTPScaledObject
+metadata:
+  name: casadelsabor
+  namespace: casadelsabor
+spec:
+  hosts:
+    - casadelsabor.homelab
+  scaleTargetRef:
+    name: casadelsabor
+    kind: Deployment
+    apiVersion: apps/v1
+    service: casadelsabor
+    port: 8000
+  replicas:
+    min: 0
+    max: 1
+  # Redescend à 0 après 10 min sans requête HTTP.
+  scaledownPeriod: 600
